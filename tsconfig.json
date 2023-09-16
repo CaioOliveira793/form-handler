@@ -1,0 +1,69 @@
+{
+	"compilerOptions": {
+		"incremental": false,
+		"target": "es2020",
+		"lib": [
+			"esnext",
+			"dom"
+		],
+		"module": "esnext",
+		"moduleResolution": "node",
+		"allowJs": false,
+		"checkJs": false,
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"rootDir": "./",
+		"baseUrl": "src",
+		"paths": {
+			"@/*": [
+				"./*"
+			],
+			"@test/*": [
+				"./../test/*"
+			]
+		},
+		"outDir": "dist",
+		"isolatedModules": false,
+		"resolveJsonModule": true,
+		"removeComments": false,
+		"stripInternal": true,
+		"esModuleInterop": true,
+		"strict": true,
+		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"strictBindCallApply": true,
+		"strictPropertyInitialization": true,
+		"alwaysStrict": true,
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"noImplicitReturns": true,
+		"noImplicitOverride": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUncheckedIndexedAccess": false,
+		"noPropertyAccessFromIndexSignature": true,
+		"preserveConstEnums": true,
+		"exactOptionalPropertyTypes": false,
+		"useUnknownInCatchVariables": true,
+		"noStrictGenericChecks": false,
+		"allowUnreachableCode": false,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"downlevelIteration": false,
+		"skipLibCheck": true
+	},
+	"include": [
+		"src/**/*",
+		"test/**/*",
+		"rollup.config.ts",
+		"vitest.config.ts"
+	],
+	"exclude": [
+		".rollup.cache/**",
+		"node_modules/**",
+		"dist/**",
+		"coverage/**"
+	]
+}
