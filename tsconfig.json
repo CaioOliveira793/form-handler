@@ -8,10 +8,10 @@
 		],
 		"module": "esnext",
 		"moduleResolution": "node",
-		"allowJs": false,
-		"checkJs": false,
+		"allowJs": true,
+		"checkJs": true,
 		"declaration": true,
-		"declarationMap": true,
+		"declarationMap": false,
 		"sourceMap": true,
 		"rootDir": "./",
 		"baseUrl": "src",
@@ -44,12 +44,12 @@
 		"noFallthroughCasesInSwitch": true,
 		"noUncheckedIndexedAccess": false,
 		"noPropertyAccessFromIndexSignature": true,
-		"preserveConstEnums": true,
-		"exactOptionalPropertyTypes": false,
-		"useUnknownInCatchVariables": true,
 		"noStrictGenericChecks": false,
 		"allowUnreachableCode": false,
 		"allowSyntheticDefaultImports": true,
+		"preserveConstEnums": true,
+		"useUnknownInCatchVariables": true,
+		"exactOptionalPropertyTypes": false,
 		"forceConsistentCasingInFileNames": true,
 		"downlevelIteration": false,
 		"skipLibCheck": true
@@ -57,13 +57,12 @@
 	"include": [
 		"src/**/*",
 		"test/**/*",
-		"rollup.config.ts",
-		"vitest.config.ts"
+		"rollup/*",
 	],
 	"exclude": [
-		".rollup.cache/**",
 		"node_modules/**",
 		"dist/**",
+		"test-build/**",
 		"coverage/**"
 	]
 }

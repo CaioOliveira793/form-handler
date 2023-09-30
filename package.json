@@ -9,22 +9,39 @@
   ],
   "license": "MIT",
   "type": "module",
-  "main": "dist",
+  "source": "src/lib.ts",
+  "module": "dist/lib-esm.js",
+  "main": "dist/lib-common.js",
+  "types": "dist/lib-type.d.ts",
   "files": [
     "dist/*"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check:type": "tsc --noEmit",
+    "check:lint": "eslint . --ext ts,js --ignore-path .gitignore",
+    "check": "run-z check:type,check:lint",
+    "build:js": "rollup --config rollup/build.config.js",
+    "build:type": "dts-bundle-generator src/lib.ts --no-check --out-file 'dist/lib-type.d.ts'",
+    "build:test": "rollup --config rollup/test.config.js",
+    "build": "run-z clear:build build:js,build:type",
+    "pretest": "rollup --config rollup/test.config.js",
+    "test": "node --test test-build",
+    "clear:build": "rimraf dist",
+    "clear:test": "rimraf test-build",
+    "clear": "rimraf dist test-build"
   },
-  "dependencies": {
+  "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.3",
     "@types/node": "^20.6.1",
     "@typescript-eslint/eslint-plugin": "^6.7.0",
     "@typescript-eslint/parser": "^6.7.0",
+    "dts-bundle-generator": "^8.0.1",
     "eslint": "^8.49.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
+    "glob": "^10.3.10",
     "prettier": "^3.0.3",
+    "rimraf": "^5.0.5",
     "rollup": "^3.29.2",
     "run-z": "^1.11.1",
     "typescript": "^5.2.2"

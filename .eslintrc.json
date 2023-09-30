@@ -17,6 +17,6 @@
 	},
 	"rules": {
 		"prettier/prettier": "warn",
-		"@typescript-eslint/ban-ts-comment": "allow"
+		"@typescript-eslint/ban-ts-comment": "off"
 	}
 }
