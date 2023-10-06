@@ -1,10 +1,9 @@
-type NodeListener<T> = (event: T) => void;
+export type NodeListener<T> = (key: string, event: T) => void;
 
-type NodeUnsubscriber = () => void;
+export type NodeUnsubscriber = () => void;
 
 const TOPIC_SEPARATOR = '.';
 
-// TODO: NodeNotifier
 export class NodeEventListener<T> {
 	public constructor() {
 		this.subscribers = new Map();
@@ -25,12 +24,23 @@ export class NodeEventListener<T> {
 	 */
 	public bubble(key: string, event: T): void {
 		let topic = key;
-		let lastSeparator = topic.lastIndexOf(TOPIC_SEPARATOR);
+		let lastSeparator = 0;
 
 		do {
-			this.subscribers.get(topic)?.(event);
-			topic = topic.slice(0, lastSeparator);
+			this.subscribers.get(topic)?.(key, event);
 			lastSeparator = topic.lastIndexOf(TOPIC_SEPARATOR);
+			topic = topic.slice(0, lastSeparator);
+		} while (lastSeparator !== -1);
+	}
+
+	public narrow(key: string, event: T): void {
+		let topic = key;
+		let lastSeparator = 0;
+
+		do {
+			this.subscribers.get(topic)?.(key, event);
+			lastSeparator = topic.indexOf(TOPIC_SEPARATOR);
+			topic = topic.slice(lastSeparator);
 		} while (lastSeparator !== -1);
 	}
 

@@ -1,57 +1,120 @@
 import {
 	EqualFn,
+	FieldError,
+	NodeEventType,
+	FieldKey,
 	FieldNode,
 	FieldState,
 	GroupComposer,
 	GroupNode,
+	NodeListener,
 	defaultEqualFn,
 	fieldState,
+	Option,
 } from '@/Field';
-import { FormState } from '@/FormState';
 
-export interface FormApiInput<T, K, V> {
-	form: FormState<T>;
-	initial: T;
+export type ValidateFormValue<T, E extends FieldError> = (data: T) => Promise<Array<E>>;
+
+export interface FormApiInput<T, K extends FieldKey, V, E extends FieldError> {
 	composer: GroupComposer<T, K, V>;
+	initial?: T;
+	validate?: ValidateFormValue<T, E> | null;
 	equalFn?: EqualFn<T>;
+	subscriber?: NodeListener<T, E> | null;
 }
 
-export class FormApi<T, K, V, E> implements FieldNode<T, E>, GroupNode<T, K, V> {
-	public constructor({ form, initial, composer, equalFn = defaultEqualFn }: FormApiInput<T, K, V>) {
-		this.form = form;
+export class FormApi<T, K extends FieldKey, V, E extends FieldError>
+	implements FieldNode<T, E>, GroupNode<T, K, V, E>
+{
+	public constructor({
+		composer,
+		initial = composer.default(),
+		validate = null,
+		equalFn = defaultEqualFn,
+		subscriber = null,
+	}: FormApiInput<T, K, V, E>) {
+		this.value = initial;
+		this.errors = [];
+		this.nodes = new Map();
 		this.state = fieldState(initial);
 		this.composer = composer;
+		this.validate = validate;
 		this.equalFn = equalFn;
-
-		this.form.setValue(initial);
+		this.subscriber = subscriber;
 	}
 
-	public extractValue(formValue: T, field: K): V {
-		return this.composer.extract(formValue, field);
+	public attachNode(field: K, node: FieldNode<V, E>): void {
+		this.nodes.set(field, node);
 	}
 
-	public patchValue(formValue: T, field: K, value: V): void {
-		this.composer.patch(formValue, field, value);
+	public detachNode(field: K): boolean {
+		return this.nodes.delete(field);
+	}
+
+	public listNode(): Array<[K, FieldNode<V, E>]> {
+		return Array.from(this.nodes.entries());
+	}
+
+	public getNode(field: K): FieldNode<V, E> | null {
+		return this.nodes.get(field) ?? null;
+	}
+
+	public extractValue(field: K): Option<V> {
+		return this.composer.extract(this.value, field);
+	}
+
+	public patchValue(field: K, value: V): void {
+		this.composer.patch(this.value, field, value);
+	}
+
+	public extractErrors(field: K): E[] {
+		const errors = [];
+		for (const err of this.errors) {
+			if (err.path.startsWith(field.toString())) {
+				errors.push(err);
+			}
+		}
+		return errors;
 	}
 
 	public getValue(): T {
-		return this.form.getValue();
+		return this.value;
 	}
 
 	public setValue(value: T): void {
-		this.form.setValue(value);
+		this.value = value;
+
+		for (const node of this.nodes.values()) {
+			node.notify('value');
+		}
+
+		this.subscriber?.({ type: 'value', data: this.getValue() });
 	}
 
 	public getErrors(): Array<E> {
-		return this.state.error;
+		return this.errors;
+	}
+
+	public appendErrors(errors: Array<E>): void {
+		this.errors.push(...errors);
+
+		for (const node of this.nodes.values()) {
+			node.notify('error');
+		}
+
+		this.subscriber?.({ type: 'error', errors: this.getErrors() });
+	}
+
+	public path(): string {
+		return '';
 	}
 
 	public isDirty(): boolean {
-		return !this.equalFn(this.form.getValue(), this.state.initial);
+		return !this.equalFn(this.value, this.state.initial);
 	}
 
 	public isInvalid(): boolean {
-		return this.state.error.length !== 0;
+		return this.errors.length !== 0;
 	}
 
 	public isModified(): boolean {
@@ -62,10 +125,31 @@ export class FormApi<T, K, V, E> implements FieldNode<T, E>, GroupNode<T, K, V> 
 		return this.state.touched;
 	}
 
-	private readonly form: FormState<T>;
-	private readonly state: FieldState<T, E>;
-	private readonly composer: GroupComposer<T, K, V>;
-	private readonly equalFn: EqualFn<T>;
+	public notify(kind: NodeEventType): void {
+		switch (kind) {
+			case 'value':
+				this.subscriber?.({ type: 'value', data: this.getValue() });
+				return;
+			case 'error':
+				this.subscriber?.({ type: 'error', errors: this.getErrors() });
+				return;
+			case 'active':
+				this.subscriber?.({ type: 'active' });
+				return;
+			case 'blur':
+				this.subscriber?.({ type: 'blur' });
+				return;
+		}
+	}
+
+	protected value: T;
+	protected errors: Array<E>;
+	protected readonly state: FieldState<T>;
+	protected readonly nodes: Map<K, FieldNode<V, E>>;
+	protected readonly composer: GroupComposer<T, K, V>;
+	protected readonly validate: ValidateFormValue<T, E> | null;
+	protected readonly equalFn: EqualFn<T>;
+	protected readonly subscriber: NodeListener<T, E> | null;
 }
 
 export * from '@/Field';
