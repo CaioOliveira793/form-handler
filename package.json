@@ -3,16 +3,26 @@
   "version": "0.1.0",
   "description": "",
   "author": "Caio Oliveira <caio.vsoliveira23@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CaioOliveira793/ultimate-form.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CaioOliveira793/ultimate-form/issues"
+  },
   "keywords": [
     "form",
+    "typescript",
     "frontent"
   ],
+  "homepage": "https://github.com/CaioOliveira793/ultimate-form#readme",
   "license": "MIT",
   "type": "module",
   "source": "src/lib.ts",
   "module": "dist/lib-esm.js",
   "main": "dist/lib-common.js",
   "types": "dist/lib-type.d.ts",
+  "sideEffects": false,
   "files": [
     "dist/*"
   ],
@@ -45,5 +55,6 @@
     "rollup": "^3.29.2",
     "run-z": "^1.11.1",
     "typescript": "^5.2.2"
-  }
+  },
+  "packageManager": "^pnpm@8.0.0"
 }
