@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { FormApi } from '@/lib';
+import { FormApi } from '@/FormApi';
 import { FieldControl } from '@/FieldControl';
 import { FieldGroupControl } from '@/FieldGroupControl';
 import {
@@ -17,8 +17,7 @@ interface Address {
 }
 
 interface Product {
-	sku: number;
-	name: string;
+	sku: string;
 	price: number;
 }
 
@@ -33,32 +32,54 @@ interface Checkout {
 	address: Address;
 }
 
-describe('FormApi', () => {
-	it('create form and field nodes', () => {
+describe('FormApi composition', () => {
+	it('create form and compose field nodes', () => {
 		const formApi = new FormApi({
 			composer: ObjectGroupComposer as ObjectComposer<Checkout>,
+			submit: () => {},
 		});
 
 		/*const paymentNode = */ new FieldControl({
+			parent: formApi,
 			field: 'payment',
-			initial: null as unknown as CheckoutPayment,
-			parent: formApi,
+			initial: CheckoutPayment.CreditCard,
 		});
-		/*const productsNode =*/ new FieldGroupControl({
-			field: 'products',
+		const productsNode = new FieldGroupControl({
 			parent: formApi,
+			field: 'products',
 			composer: ArrayGroupComposer as ArrayComposer<Product>,
 		});
 		/*const addressNode = */ new FieldGroupControl({
-			field: 'address',
 			parent: formApi,
+			field: 'address',
 			composer: ObjectGroupComposer as ObjectComposer<Address>,
+			initial: null,
+		});
+		const product0Node = new FieldGroupControl({
+			parent: productsNode,
+			field: 0,
+			composer: ObjectGroupComposer as ObjectComposer<Product>,
+		});
+		/*const product1skuNode = */ new FieldControl({
+			parent: product0Node,
+			field: 'sku',
+			initial: '123',
+		});
+		/*const product1priceNode = */ new FieldControl({
+			parent: product0Node,
+			field: 'price',
+			initial: 249.99,
 		});
 
 		assert.deepStrictEqual(formApi.getValue(), {
-			payment: null,
-			products: [],
-			address: {},
+			payment: CheckoutPayment.CreditCard,
+			products: [
+				{
+					sku: '123',
+					price: 249.99,
+				},
+			],
+			address: null,
 		});
 	});
 });

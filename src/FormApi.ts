@@ -1,84 +1,96 @@
 import {
-	EqualFn,
 	FieldError,
-	NodeEventType,
 	FieldKey,
-	FieldNode,
 	GroupComposer,
-	GroupNode,
+	EqualFn,
 	NodeListener,
+	FieldNode,
+	GroupNode,
 	defaultEqualFn,
+	NodeEventType,
 	Option,
 } from '@/Field';
 
-export interface FieldGroupControlInput<
-	F extends FieldKey,
-	T,
-	K extends FieldKey,
-	V,
-	P,
-	E extends FieldError,
-> {
-	field: F;
-	parent: GroupNode<P, F, T, E>;
+export type ValidateFormFn<T, E extends FieldError> = (
+	data: T
+) => Promise<Array<E>> | Promise<void> | Array<E> | void;
+
+export type SubmitFormFn<T, K extends FieldKey, V, E extends FieldError> = (
+	data: T,
+	formApi: FormApi<T, K, V, E>
+) => Promise<Array<E>> | Promise<void> | Array<E> | void;
+
+export interface FormApiInput<T, K extends FieldKey, V, E extends FieldError> {
 	composer: GroupComposer<T, K, V>;
 	initial?: T;
+	submit: SubmitFormFn<T, K, V, E>;
+	validate?: ValidateFormFn<T, E>;
 	equalFn?: EqualFn<T>;
 	subscriber?: NodeListener<T, E> | null;
 }
 
-export class FieldGroupControl<
-		F extends FieldKey,
-		T,
-		K extends FieldKey,
-		V,
-		P,
-		E extends FieldError,
-	>
+function defaultValidateFn() {
+	/* no-op */
+}
+
+export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 	implements FieldNode<T, E>, GroupNode<T, K, V, E>
 {
 	public constructor({
-		field,
-		parent,
 		composer,
 		initial = composer.default(),
+		submit,
+		validate = defaultValidateFn,
 		equalFn = defaultEqualFn,
 		subscriber = null,
-	}: FieldGroupControlInput<F, T, K, V, P, E>) {
-		this.field = field;
-		this.parent = parent;
+	}: FormApiInput<T, K, V, E>) {
+		this.value = initial;
+		this.errors = [];
 		this.nodes = new Map();
 		this.composer = composer;
 		this.initial = initial;
 		this.touched = false;
 		this.modified = false;
+		this.submitFn = submit;
+		this.validateFn = validate;
 		this.equalFn = equalFn;
 		this.subscriber = subscriber;
+	}
 
-		this.parent.attachNode(this.field, this);
+	public async submit(): Promise<void> {
+		// TODO: add form validation trigger event.
+		this.errors = (await this.validateFn(this.value)) ?? [];
+
+		if (this.errors.length === 0) {
+			this.subscriber?.({ type: 'error', errors: this.errors });
+			return;
+		}
+
+		const errors = await this.submitFn(this.value, this);
+		if (!errors) return;
+
+		this.errors = errors;
+		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
 	public attachNode(field: K, node: FieldNode<V, E>): void {
 		this.nodes.set(field, node);
 
-		const group = this.parent.extractValue(this.field);
 		const value = node.getInitialValue();
-		if (!group) return;
+		if (!this.value) return;
 
-		this.composer.patch(group, field, value as V);
-		this.subscriber?.({ type: 'value', data: group });
-		this.parent.notify('value');
+		this.composer.patch(this.value, field, value as V);
+		this.subscriber?.({ type: 'value', data: this.value });
 	}
 
 	public detachNode(field: K): boolean {
 		const deleted = this.nodes.delete(field);
 
-		const group = this.parent.extractValue(this.field);
-		if (group) {
-			this.composer.delete(group, field);
-			this.subscriber?.({ type: 'value', data: group });
-			this.parent.notify('value');
+		if (this.value) {
+			this.composer.delete(this.value, field);
+			this.subscriber?.({ type: 'value', data: this.value });
 		}
+
 		return deleted;
 	}
 
@@ -91,22 +103,19 @@ export class FieldGroupControl<
 	}
 
 	public extractValue(field: K): Option<V> {
-		const group = this.parent.extractValue(this.field);
-		if (!group) return;
-		return this.composer.extract(group, field);
+		return this.composer.extract(this.value, field);
 	}
 
 	public patchValue(field: K, value: V): void {
-		const group = this.parent.extractValue(this.field);
-		if (!group) return;
-		this.composer.patch(group, field, value);
+		this.composer.patch(this.value, field, value);
 	}
 
-	public extractErrors(field: K): Array<E> {
-		const fieldPath = this.path() + '.' + field;
+	public extractErrors(field: K): E[] {
 		const errors = [];
-		for (const err of this.parent.extractErrors(this.field)) {
-			if (err.path.startsWith(fieldPath)) errors.push(err);
+		for (const err of this.errors) {
+			if (err.path.startsWith(field.toString())) {
+				errors.push(err);
+			}
 		}
 		return errors;
 	}
@@ -115,49 +124,44 @@ export class FieldGroupControl<
 		return this.initial;
 	}
 
-	public getValue(): Option<T> {
-		return this.parent.extractValue(this.field);
+	public getValue(): T {
+		return this.value;
 	}
 
 	public setValue(value: T): void {
-		this.parent.patchValue(this.field, value);
+		this.value = value;
 
 		for (const node of this.nodes.values()) {
 			node.notify('value');
 		}
 
-		// publish value event
 		this.subscriber?.({ type: 'value', data: this.getValue() });
-		this.parent.notify('value');
 	}
 
 	public getErrors(): Array<E> {
-		return this.parent.extractErrors(this.field);
+		return this.errors;
 	}
 
 	public appendErrors(errors: Array<E>): void {
-		this.parent.appendErrors(errors);
+		this.errors.push(...errors);
 
 		for (const node of this.nodes.values()) {
 			node.notify('error');
 		}
 
-		// publish error event
 		this.subscriber?.({ type: 'error', errors: this.getErrors() });
 	}
 
 	public path(): string {
-		return this.parent.path() + '.' + this.field;
+		return '';
 	}
 
 	public isDirty(): boolean {
-		const current = this.parent.extractValue(this.field);
-		if (!current) return true;
-		return !this.equalFn(current, this.initial);
+		return !this.equalFn(this.value, this.initial);
 	}
 
 	public isValid(): boolean {
-		return this.parent.extractErrors(this.field).length === 0;
+		return this.errors.length === 0;
 	}
 
 	public isModified(): boolean {
@@ -168,8 +172,8 @@ export class FieldGroupControl<
 		return this.touched;
 	}
 
-	public notify(type: NodeEventType): void {
-		switch (type) {
+	public notify(kind: NodeEventType): void {
+		switch (kind) {
 			case 'value':
 				this.subscriber?.({ type: 'value', data: this.getValue() });
 				return;
@@ -187,17 +191,18 @@ export class FieldGroupControl<
 
 	public dispose(): void {
 		this.subscriber?.({ type: 'dispose' });
-		this.parent.detachNode(this.field);
 	}
 
-	private readonly field: F;
-	private readonly parent: GroupNode<P, F, T, E>;
+	private value: T;
+	private errors: Array<E>;
 	private readonly nodes: Map<K, FieldNode<V, E>>;
 	private readonly composer: GroupComposer<T, K, V>;
 	private readonly initial: Option<T>;
 	private touched: boolean;
 	private modified: boolean;
 
+	private readonly submitFn: SubmitFormFn<T, K, V, E>;
+	private readonly validateFn: ValidateFormFn<T, E>;
 	private readonly equalFn: EqualFn<T>;
 	private readonly subscriber: NodeListener<T, E> | null;
 }
