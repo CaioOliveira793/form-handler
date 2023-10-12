@@ -8,6 +8,7 @@ import {
 	NodeListener,
 	defaultEqualFn,
 	Option,
+	EventBroadcast,
 } from '@/Field';
 
 export interface FieldControlInput<F extends FieldKey, T, P, E extends FieldError> {
@@ -32,11 +33,12 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 		this.parent = parent;
 		this.initial = initial;
 		this.touched = false;
+		this.active = false;
 		this.modified = false;
 		this.equalFn = equalFn;
 		this.subscriber = subscriber;
 
-		this.parent.attachNode(this.field, this);
+		this.nodepath = this.parent.attachNode(this.field, this);
 	}
 
 	public getInitialValue(): Option<T> {
@@ -48,11 +50,15 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 	}
 
 	public setValue(value: T): void {
+		this.modified = true;
 		this.parent.patchValue(this.field, value);
 
-		// publish value event
 		this.subscriber?.({ type: 'value', data: value });
-		this.parent.notify('value');
+		this.parent.notify('value', 'up');
+	}
+
+	public reset(): void {
+		this.setValue(this.initial as T);
 	}
 
 	public getErrors(): Array<E> {
@@ -62,22 +68,37 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 	public appendErrors(errors: Array<E>): void {
 		this.parent.appendErrors(errors);
 
-		// publish error event
 		this.subscriber?.({ type: 'error', errors: this.getErrors() });
 	}
 
 	public path(): string {
-		return this.parent.path() + '.' + this.field;
+		return this.nodepath;
 	}
 
-	public isDirty(): boolean {
-		const value = this.getValue();
-		if (!value) return true;
-		return !this.equalFn(this.initial, value);
+	public handleFocus(): void {
+		this.active = true;
+		this.touched = true;
+
+		this.parent.handleFocusWithin();
+	}
+
+	public handleBlur(): void {
+		this.active = false;
+		this.touched = true;
+
+		this.parent.handleBlurWithin();
 	}
 
 	public isValid(): boolean {
 		return this.parent.extractErrors(this.field).length === 0;
+	}
+
+	public isDirty(): boolean {
+		return !this.equalFn(this.initial, this.getValue());
+	}
+
+	public isActive(): boolean {
+		return this.active;
 	}
 
 	public isModified(): boolean {
@@ -88,36 +109,32 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 		return this.touched;
 	}
 
-	public notify(type: NodeEventType): void {
+	public notify(type: NodeEventType, broadcast: EventBroadcast = 'none'): void {
 		switch (type) {
 			case 'value':
+				this.modified = true;
 				this.subscriber?.({ type: 'value', data: this.getValue() });
-				return;
+				break;
 			case 'error':
 				this.subscriber?.({ type: 'error', errors: this.getErrors() });
-				return;
-			case 'active':
-				this.subscriber?.({ type: 'active' });
-				return;
-			case 'blur':
-				this.subscriber?.({ type: 'blur' });
-				return;
+				break;
+		}
+
+		if (broadcast === 'up') {
+			this.parent.notify(type, 'up');
 		}
 	}
 
 	public dispose(): void {
-		this.subscriber?.({ type: 'dispose' });
 		this.parent.detachNode(this.field);
 	}
 
-	// [Symbol.dispose](): void {
-	// 	this.dispose();
-	// }
-
+	private readonly nodepath: string;
 	private readonly field: F;
 	private readonly parent: GroupNode<P, F, T, E>;
 	private readonly initial: Option<T>;
 	private touched: boolean;
+	private active: boolean;
 	private modified: boolean;
 
 	private readonly equalFn: EqualFn<T>;

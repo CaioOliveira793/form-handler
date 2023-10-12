@@ -9,6 +9,7 @@ import {
 	NodeListener,
 	defaultEqualFn,
 	Option,
+	EventBroadcast,
 } from '@/Field';
 
 export interface FieldGroupControlInput<
@@ -51,23 +52,28 @@ export class FieldGroupControl<
 		this.composer = composer;
 		this.initial = initial;
 		this.touched = false;
+		this.active = false;
 		this.modified = false;
 		this.equalFn = equalFn;
 		this.subscriber = subscriber;
 
-		this.parent.attachNode(this.field, this);
+		this.nodepath = this.parent.attachNode(this.field, this);
 	}
 
-	public attachNode(field: K, node: FieldNode<V, E>): void {
+	public attachNode(field: K, node: FieldNode<V, E>): string {
 		this.nodes.set(field, node);
+		const childpath = this.nodepath + '.' + field;
 
 		const group = this.parent.extractValue(this.field);
 		const value = node.getInitialValue();
-		if (!group) return;
+		if (!group) return childpath;
 
+		this.modified = true;
 		this.composer.patch(group, field, value as V);
 		this.subscriber?.({ type: 'value', data: group });
-		this.parent.notify('value');
+		this.parent.notify('value', 'up');
+
+		return childpath;
 	}
 
 	public detachNode(field: K): boolean {
@@ -75,9 +81,10 @@ export class FieldGroupControl<
 
 		const group = this.parent.extractValue(this.field);
 		if (group) {
+			this.modified = true;
 			this.composer.delete(group, field);
 			this.subscriber?.({ type: 'value', data: group });
-			this.parent.notify('value');
+			this.parent.notify('value', 'up');
 		}
 		return deleted;
 	}
@@ -99,16 +106,29 @@ export class FieldGroupControl<
 	public patchValue(field: K, value: V): void {
 		const group = this.parent.extractValue(this.field);
 		if (!group) return;
+		this.modified = true;
 		this.composer.patch(group, field, value);
 	}
 
 	public extractErrors(field: K): Array<E> {
-		const fieldPath = this.path() + '.' + field;
+		const fieldpath = this.nodepath + '.' + field;
 		const errors = [];
 		for (const err of this.parent.extractErrors(this.field)) {
-			if (err.path.startsWith(fieldPath)) errors.push(err);
+			if (err.path.startsWith(fieldpath)) errors.push(err);
 		}
 		return errors;
+	}
+
+	public handleFocusWithin(): void {
+		this.touched = true;
+
+		this.parent.handleFocusWithin();
+	}
+
+	public handleBlurWithin(): void {
+		this.touched = true;
+
+		this.parent.handleBlurWithin();
 	}
 
 	public getInitialValue(): Option<T> {
@@ -120,15 +140,19 @@ export class FieldGroupControl<
 	}
 
 	public setValue(value: T): void {
+		this.modified = true;
 		this.parent.patchValue(this.field, value);
 
 		for (const node of this.nodes.values()) {
-			node.notify('value');
+			node.notify('value', 'down');
 		}
 
-		// publish value event
 		this.subscriber?.({ type: 'value', data: this.getValue() });
-		this.parent.notify('value');
+		this.parent.notify('value', 'up');
+	}
+
+	public reset(): void {
+		this.setValue(this.initial as T);
 	}
 
 	public getErrors(): Array<E> {
@@ -139,25 +163,40 @@ export class FieldGroupControl<
 		this.parent.appendErrors(errors);
 
 		for (const node of this.nodes.values()) {
-			node.notify('error');
+			node.notify('error', 'down');
 		}
 
-		// publish error event
 		this.subscriber?.({ type: 'error', errors: this.getErrors() });
 	}
 
 	public path(): string {
-		return this.parent.path() + '.' + this.field;
+		return this.nodepath;
 	}
 
-	public isDirty(): boolean {
-		const current = this.parent.extractValue(this.field);
-		if (!current) return true;
-		return !this.equalFn(current, this.initial);
+	public handleFocus(): void {
+		this.active = true;
+		this.touched = true;
+
+		this.parent.handleFocusWithin();
+	}
+
+	public handleBlur(): void {
+		this.active = false;
+		this.touched = true;
+
+		this.parent.handleBlurWithin();
 	}
 
 	public isValid(): boolean {
 		return this.parent.extractErrors(this.field).length === 0;
+	}
+
+	public isDirty(): boolean {
+		return !this.equalFn(this.initial, this.parent.extractValue(this.field));
+	}
+
+	public isActive(): boolean {
+		return this.active;
 	}
 
 	public isModified(): boolean {
@@ -168,34 +207,44 @@ export class FieldGroupControl<
 		return this.touched;
 	}
 
-	public notify(type: NodeEventType): void {
+	public notify(type: NodeEventType, broadcast: EventBroadcast = 'none'): void {
 		switch (type) {
 			case 'value':
+				this.modified = true;
 				this.subscriber?.({ type: 'value', data: this.getValue() });
-				return;
+				break;
 			case 'error':
 				this.subscriber?.({ type: 'error', errors: this.getErrors() });
-				return;
-			case 'active':
-				this.subscriber?.({ type: 'active' });
-				return;
-			case 'blur':
-				this.subscriber?.({ type: 'blur' });
-				return;
+				break;
+		}
+
+		switch (broadcast) {
+			case 'up':
+				this.parent.notify(type, 'up');
+				break;
+			case 'down':
+				for (const node of this.nodes.values()) {
+					node.notify(type, 'down');
+				}
+				break;
 		}
 	}
 
 	public dispose(): void {
-		this.subscriber?.({ type: 'dispose' });
+		for (const node of this.nodes.values()) {
+			node.dispose();
+		}
 		this.parent.detachNode(this.field);
 	}
 
+	private readonly nodepath: string;
 	private readonly field: F;
 	private readonly parent: GroupNode<P, F, T, E>;
 	private readonly nodes: Map<K, FieldNode<V, E>>;
 	private readonly composer: GroupComposer<T, K, V>;
 	private readonly initial: Option<T>;
 	private touched: boolean;
+	private active: boolean;
 	private modified: boolean;
 
 	private readonly equalFn: EqualFn<T>;

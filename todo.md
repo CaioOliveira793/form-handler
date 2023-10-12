@@ -2,23 +2,101 @@
 
 ## Test
 
-- [ ] publish state changes to a parent and children node.
-- [ ] form composability
-- [ ] typed asserted API
+- FieldNode
+  - path
+    - [ ] field composition
+    - [ ] path
+  - pub/sub
+    - [ ] notification
+    - [ ] subscription
+  - node composition
+    - [ ] attach node
+    - [ ] detach node
+    - [ ] list node
+    - [ ] get node
+  - value
+    - [ ] get/set value
+    - [ ] reset value
+  - error
+    - [ ] replace errors
+    - [ ] append errors
+    - [ ] get errors
+  - state change
+    - [x] focus
+    - [x] blur
+    - [x] valid
+    - [x] dirty
+    - [x] modified
+    - [x] touched
+
+- FieldGroupNode
+  - path
+    - [ ] field composition
+    - [ ] path
+  - pub/sub
+    - [ ] notification
+    - [ ] subscription
+  - node composition
+    - [ ] attach node
+    - [ ] detach node
+    - [ ] list node
+    - [ ] get node
+  - value
+    - [ ] get/set value
+    - [ ] reset value
+    - [ ] patch value
+    - [ ] delete value
+    - [ ] extract value
+  - error
+    - [ ] extract error
+  - state change
+    - [ ] focus within
+    - [ ] blur within
+    - [ ] valid
+    - [ ] dirty
+    - [ ] modified
+    - [ ] touched
+
+- FormApi
+  - submit
+    - [ ] error verification
+    - [ ] submit error
+  - path
+    - [ ] field composition
+    - [ ] path
+  - pub/sub
+    - [ ] notification
+    - [ ] subscription
+  - node composition
+    - [ ] attach node
+    - [ ] detach node
+    - [ ] list node
+    - [ ] get node
+  - value
+    - [ ] get/set value
+    - [ ] reset value
+    - [ ] patch value
+    - [ ] delete value
+    - [ ] extract value
+  - error
+    - [ ] validation
+    - [ ] validation trigger
+    - [ ] extract error
+  - state change
+    - [ ] focus within
+    - [ ] blur within
+    - [ ] valid
+    - [ ] dirty
+    - [ ] modified
+    - [ ] touched
 
 ## Features
 
-- [ ] handle state changes
-  - [ ] focus/touched
-  - [ ] blur
-  - [ ] change/setValue
 - [ ] form validation
-- [ ] form validation trigger event `'blur' | 'change' | 'submit' | 'focus'`
 - [ ] form submition
 - [ ] reset form
 - [ ] clear field errors
 - [ ] clear form errors
-- [ ] reset field
 - [ ] field destroy on unregister
 - [ ] array node helper functions
   - `swap|swapNode(indexA: number, indexB: number): void`
