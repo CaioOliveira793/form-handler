@@ -89,7 +89,6 @@
 
 - [ ] form validation
 - [ ] form submition
-- [ ] reset form
 - [ ] clear field errors
 - [ ] clear form errors
 - [ ] field destroy on unregister

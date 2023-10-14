@@ -10,7 +10,7 @@ import {
 	Option,
 	NodeNotification,
 } from '@/Field';
-import { distributeErrors } from './Helper';
+import { distributeErrors } from '@/Helper';
 
 /**
  * Form validation function
@@ -189,7 +189,7 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 		return this.initial;
 	}
 
-	public getValue(): T {
+	public getValue(): Option<T> {
 		return this.value;
 	}
 
@@ -210,7 +210,7 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 	}
 
 	public reset(): void {
-		this.setValue(this.initial as T);
+		this.setValue(this.initial);
 	}
 
 	public getErrors(): Array<E> {
@@ -283,12 +283,8 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 				break;
 			}
 
-			case 'parent-value-updated': {
-				this.modified = true;
-				this.value = notification.data as T;
-				this.subscriber?.({ type: 'value', data: this.value });
+			case 'parent-value-updated':
 				break;
-			}
 		}
 	}
 
@@ -311,7 +307,7 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 	private value: T;
 	private readonly nodes: Map<K, FieldNode<V, E>>;
 	private readonly composer: GroupComposer<T, K, V>;
-	private readonly initial: Option<T>;
+	private readonly initial: T;
 	private touched: boolean;
 	private active: boolean;
 	private modified: boolean;

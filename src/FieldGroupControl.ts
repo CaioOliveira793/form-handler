@@ -10,7 +10,7 @@ import {
 	Option,
 	NodeNotification,
 } from '@/Field';
-import { distributeErrors } from './Helper';
+import { distributeErrors } from '@/Helper';
 
 export interface FieldGroupControlInput<
 	F extends FieldKey,
@@ -153,7 +153,7 @@ export class FieldGroupControl<
 	}
 
 	public reset(): void {
-		this.setValue(this.initial as T);
+		this.setValue(this.initial);
 	}
 
 	public getErrors(): Array<E> {
@@ -256,7 +256,7 @@ export class FieldGroupControl<
 	private readonly parent: GroupNode<P, F, T, E>;
 	private readonly nodes: Map<K, FieldNode<V, E>>;
 	private readonly composer: GroupComposer<T, K, V>;
-	private readonly initial: Option<T>;
+	private readonly initial: T;
 	private touched: boolean;
 	private active: boolean;
 	private modified: boolean;

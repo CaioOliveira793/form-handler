@@ -21,14 +21,14 @@ export type NodeNotification<T, E extends FieldError> =
 	| NodeNestedValueUpdatedNotification
 	| NodeErrorEvent<E>;
 
-export interface NodeErrorEvent<E extends FieldError> {
-	type: 'error';
-	errors: Array<E>;
-}
-
 export interface NodeValueEvent<T> {
 	type: 'value';
 	data: Option<T>;
+}
+
+export interface NodeErrorEvent<E extends FieldError> {
+	type: 'error';
+	errors: Array<E>;
 }
 
 export type NodeEvent<T, E extends FieldError> = NodeValueEvent<T> | NodeErrorEvent<E>;
@@ -37,8 +37,6 @@ export type NodeEvent<T, E extends FieldError> = NodeValueEvent<T> | NodeErrorEv
  * FieldNode event listener.
  */
 export type NodeListener<T, E extends FieldError> = (event: NodeEvent<T, E>) => void;
-
-// TODO: send the complete event in `FieldNode.notify` to avoid inefficiencies.
 
 export interface FieldNode<T, E extends FieldError> {
 	/**
@@ -147,10 +145,25 @@ export interface FieldNode<T, E extends FieldError> {
 
 // function signalValueUpdate(nearestNode: 'up' | 'down') {}
 
+/**
+ * Node attachment
+ */
 export interface NodeAttachment {
-	detach: () => void;
+	/**
+	 * Notify for the parent node that its value was updated.
+	 */
+	notifyUpdate(): void;
+	/**
+	 * Remove a child node from the group.
+	 */
+	detach(): void;
+	/**
+	 * Path of field names from the root node to the attached node.
+	 */
 	path: string;
 }
+
+export type GroupNodeSubscriber<T> = (data: Option<T>) => void;
 
 export interface GroupNode<T, K extends FieldKey, V, E extends FieldError> extends FieldNode<T, E> {
 	/**
