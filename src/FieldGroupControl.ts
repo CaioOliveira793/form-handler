@@ -1,7 +1,6 @@
 import {
 	EqualFn,
 	FieldError,
-	NodeEventType,
 	FieldKey,
 	FieldNode,
 	GroupComposer,
@@ -9,8 +8,9 @@ import {
 	NodeListener,
 	defaultEqualFn,
 	Option,
-	EventBroadcast,
+	NodeNotification,
 } from '@/Field';
+import { distributeErrors } from './Helper';
 
 export interface FieldGroupControlInput<
 	F extends FieldKey,
@@ -54,6 +54,7 @@ export class FieldGroupControl<
 		this.touched = false;
 		this.active = false;
 		this.modified = false;
+		this.errors = [];
 		this.equalFn = equalFn;
 		this.subscriber = subscriber;
 
@@ -62,18 +63,18 @@ export class FieldGroupControl<
 
 	public attachNode(field: K, node: FieldNode<V, E>): string {
 		this.nodes.set(field, node);
-		const childpath = this.nodepath + '.' + field;
+		const path = this.nodepath + '.' + field;
 
 		const group = this.parent.extractValue(this.field);
 		const value = node.getInitialValue();
-		if (!group) return childpath;
+		if (!group) return path;
 
 		this.modified = true;
 		this.composer.patch(group, field, value as V);
 		this.subscriber?.({ type: 'value', data: group });
-		this.parent.notify('value', 'up');
+		this.parent.notify({ type: 'nested-value-updated' });
 
-		return childpath;
+		return path;
 	}
 
 	public detachNode(field: K): boolean {
@@ -84,7 +85,7 @@ export class FieldGroupControl<
 			this.modified = true;
 			this.composer.delete(group, field);
 			this.subscriber?.({ type: 'value', data: group });
-			this.parent.notify('value', 'up');
+			this.parent.notify({ type: 'nested-value-updated' });
 		}
 		return deleted;
 	}
@@ -103,20 +104,19 @@ export class FieldGroupControl<
 		return this.composer.extract(group, field);
 	}
 
-	public patchValue(field: K, value: V): void {
+	public patchValue(field: K, value: V): Option<T> {
 		const group = this.parent.extractValue(this.field);
-		if (!group) return;
+		if (!group) return undefined;
 		this.modified = true;
 		this.composer.patch(group, field, value);
+		return group;
 	}
 
-	public extractErrors(field: K): Array<E> {
-		const fieldpath = this.nodepath + '.' + field;
-		const errors = [];
-		for (const err of this.parent.extractErrors(this.field)) {
-			if (err.path.startsWith(fieldpath)) errors.push(err);
+	public hasNestedError(): boolean {
+		for (const node of this.nodes.values()) {
+			if (node.isValid()) return true;
 		}
-		return errors;
+		return false;
 	}
 
 	public handleFocusWithin(): void {
@@ -143,12 +143,13 @@ export class FieldGroupControl<
 		this.modified = true;
 		this.parent.patchValue(this.field, value);
 
-		for (const node of this.nodes.values()) {
-			node.notify('value', 'down');
+		for (const [field, node] of this.nodes.entries()) {
+			const data = this.composer.extract(value, field);
+			node.notify({ type: 'parent-value-updated', data });
 		}
 
 		this.subscriber?.({ type: 'value', data: this.getValue() });
-		this.parent.notify('value', 'up');
+		this.parent.notify({ type: 'nested-value-updated' });
 	}
 
 	public reset(): void {
@@ -156,15 +157,17 @@ export class FieldGroupControl<
 	}
 
 	public getErrors(): Array<E> {
-		return this.parent.extractErrors(this.field);
+		return this.errors;
+	}
+
+	public setErrors(errors: Array<E>): void {
+		this.errors = errors;
+
+		this.subscriber?.({ type: 'error', errors: this.getErrors() });
 	}
 
 	public appendErrors(errors: Array<E>): void {
 		this.parent.appendErrors(errors);
-
-		for (const node of this.nodes.values()) {
-			node.notify('error', 'down');
-		}
 
 		this.subscriber?.({ type: 'error', errors: this.getErrors() });
 	}
@@ -188,7 +191,7 @@ export class FieldGroupControl<
 	}
 
 	public isValid(): boolean {
-		return this.parent.extractErrors(this.field).length === 0;
+		return this.errors.length === 0;
 	}
 
 	public isDirty(): boolean {
@@ -207,24 +210,35 @@ export class FieldGroupControl<
 		return this.touched;
 	}
 
-	public notify(type: NodeEventType, broadcast: EventBroadcast = 'none'): void {
-		switch (type) {
-			case 'value':
+	public notify(notification: NodeNotification<T, E>): void {
+		switch (notification.type) {
+			case 'error':
+				this.errors = notification.errors;
+				this.subscriber?.({ type: 'error', errors: this.errors });
+
+				distributeErrors(this.errors, this.nodes, this.nodepath + '.');
+				break;
+
+			case 'nested-value-updated':
 				this.modified = true;
 				this.subscriber?.({ type: 'value', data: this.getValue() });
+				this.parent.notify({ type: 'nested-value-updated' });
 				break;
-			case 'error':
-				this.subscriber?.({ type: 'error', errors: this.getErrors() });
-				break;
-		}
 
-		switch (broadcast) {
-			case 'up':
-				this.parent.notify(type, 'up');
-				break;
-			case 'down':
-				for (const node of this.nodes.values()) {
-					node.notify(type, 'down');
+			case 'parent-value-updated':
+				this.modified = true;
+				this.subscriber?.({ type: 'value', data: notification.data });
+
+				if (!notification.data) {
+					for (const node of this.nodes.values()) {
+						node.notify({ type: 'parent-value-updated', data: undefined });
+					}
+					break;
+				}
+
+				for (const [field, node] of this.nodes.entries()) {
+					const data = this.composer.extract(notification.data, field);
+					node.notify({ type: 'parent-value-updated', data });
 				}
 				break;
 		}
@@ -246,6 +260,7 @@ export class FieldGroupControl<
 	private touched: boolean;
 	private active: boolean;
 	private modified: boolean;
+	private errors: Array<E>;
 
 	private readonly equalFn: EqualFn<T>;
 	private readonly subscriber: NodeListener<T, E> | null;

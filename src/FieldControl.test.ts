@@ -3,7 +3,8 @@ import assert from 'node:assert';
 import { FormApi } from '@/FormApi';
 import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
 import { FieldControl } from '@/FieldControl';
-import { FieldGroupControl } from './FieldGroupControl';
+import { FieldGroupControl } from '@/FieldGroupControl';
+import { FieldError } from '@/Field';
 
 interface TestAddress {
 	state: string;
@@ -14,6 +15,14 @@ interface TestFormData {
 	name: string;
 	email: string;
 	address: TestAddress;
+}
+
+interface TestError extends FieldError {
+	message: string;
+}
+
+function delay(time: number): Promise<void> {
+	return new Promise(resolver => setTimeout(resolver, time));
 }
 
 describe('FieldControl state management', () => {
@@ -371,7 +380,7 @@ describe('FieldControl state management', () => {
 
 		streetField.setValue('invalid');
 
-		await delay(5);
+		await delay(10);
 
 		assert.strictEqual(streetField.isValid(), false);
 		assert.deepStrictEqual(streetField.getErrors(), [
@@ -383,6 +392,82 @@ describe('FieldControl state management', () => {
 	});
 });
 
-function delay(time: number): Promise<void> {
-	return new Promise(resolver => setTimeout(resolver, time));
-}
+describe('FieldControl error manipulation', () => {
+	it('append new errors in a field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({ parent: addressField, field: 'street' });
+		const stateField = new FieldControl({ parent: addressField, field: 'state' });
+
+		streetField.appendErrors([
+			{ message: 'Test error', path: 'address.street' },
+			{ message: 'Invalid street name', path: 'address.street' },
+		]);
+
+		assert.strictEqual(form.isFormValid(), false);
+
+		assert.strictEqual(streetField.isValid(), false);
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ message: 'Test error', path: 'address.street' },
+			{ message: 'Invalid street name', path: 'address.street' },
+		]);
+
+		assert.strictEqual(stateField.isValid(), true);
+		assert.deepStrictEqual(stateField.getErrors(), []);
+
+		streetField.appendErrors([{ message: 'Another one', path: 'address.street' }]);
+
+		assert.strictEqual(form.isFormValid(), false);
+
+		assert.strictEqual(streetField.isValid(), false);
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ message: 'Test error', path: 'address.street' },
+			{ message: 'Invalid street name', path: 'address.street' },
+			{ message: 'Another one', path: 'address.street' },
+		]);
+	});
+
+	it('replace the errors of a field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({ parent: addressField, field: 'street' });
+		const stateField = new FieldControl({ parent: addressField, field: 'state' });
+
+		streetField.setErrors([
+			{ message: 'error#1', path: 'address.street' },
+			{ message: 'error#2', path: 'address.street' },
+		]);
+
+		assert.strictEqual(streetField.isValid(), false);
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ message: 'error#1', path: 'address.street' },
+			{ message: 'error#2', path: 'address.street' },
+		]);
+
+		assert.strictEqual(form.isFormValid(), false);
+
+		assert.strictEqual(stateField.isValid(), true);
+		assert.deepStrictEqual(stateField.getErrors(), []);
+
+		streetField.setErrors([{ message: 'error#0', path: 'address.street' }]);
+
+		assert.strictEqual(streetField.isValid(), false);
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ message: 'error#0', path: 'address.street' },
+		]);
+
+		assert.strictEqual(form.isFormValid(), false);
+	});
+});

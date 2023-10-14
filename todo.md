@@ -9,18 +9,13 @@
   - pub/sub
     - [ ] notification
     - [ ] subscription
-  - node composition
-    - [ ] attach node
-    - [ ] detach node
-    - [ ] list node
-    - [ ] get node
   - value
     - [ ] get/set value
     - [ ] reset value
   - error
-    - [ ] replace errors
-    - [ ] append errors
-    - [ ] get errors
+    - [x] replace errors
+    - [x] append errors
+    - [x] get errors
   - state change
     - [x] focus
     - [x] blur
@@ -111,4 +106,3 @@
 ## react-hook-form
 
 - [useForm options](https://react-hook-form.com/docs/useform)
-

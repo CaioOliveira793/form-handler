@@ -58,5 +58,5 @@
     "run-z": "^1.11.1",
     "typescript": "^5.2.2"
   },
-  "packageManager": "^pnpm@8.0.0"
+  "packageManager": "pnpm@8.0.0"
 }

@@ -7,18 +7,36 @@ export interface FieldError {
 
 export type Option<T> = T | undefined;
 
-export type NodeEventType = 'value' | 'error';
+export interface NodeParentValueUpdatedNotification<T> {
+	type: 'parent-value-updated';
+	data: Option<T>;
+}
 
-export type EventBroadcast = 'up' | 'down' | 'none';
+export interface NodeNestedValueUpdatedNotification {
+	type: 'nested-value-updated';
+}
 
-export type FieldEvent<T, E extends FieldError> =
-	| { type: 'value'; data: Option<T> }
-	| { type: 'error'; errors: Array<E> };
+export type NodeNotification<T, E extends FieldError> =
+	| NodeParentValueUpdatedNotification<T>
+	| NodeNestedValueUpdatedNotification
+	| NodeErrorEvent<E>;
+
+export interface NodeErrorEvent<E extends FieldError> {
+	type: 'error';
+	errors: Array<E>;
+}
+
+export interface NodeValueEvent<T> {
+	type: 'value';
+	data: Option<T>;
+}
+
+export type NodeEvent<T, E extends FieldError> = NodeValueEvent<T> | NodeErrorEvent<E>;
 
 /**
  * FieldNode event listener.
  */
-export type NodeListener<T, E extends FieldError> = (event: FieldEvent<T, E>) => void;
+export type NodeListener<T, E extends FieldError> = (event: NodeEvent<T, E>) => void;
 
 // TODO: send the complete event in `FieldNode.notify` to avoid inefficiencies.
 
@@ -38,7 +56,7 @@ export interface FieldNode<T, E extends FieldError> {
 	/**
 	 * Replace the value of this field.
 	 *
-	 * **triggers events**: 'value'
+	 * **triggers event**: 'value'
 	 *
 	 * @param value replacing value
 	 */
@@ -46,7 +64,7 @@ export interface FieldNode<T, E extends FieldError> {
 	/**
 	 * Resplace this field value with its initial value.
 	 *
-	 * **triggers events**: 'value'
+	 * **triggers event**: 'value'
 	 */
 	reset(): void;
 	/**
@@ -56,9 +74,17 @@ export interface FieldNode<T, E extends FieldError> {
 	 */
 	getErrors(): Array<E>;
 	/**
-	 * Append new errors for this field.
+	 * Set the errors of this field.
 	 *
-	 * **triggers events**: 'error'
+	 * **triggers event**: 'error'
+	 *
+	 * @param errors new errors
+	 */
+	setErrors(errors: Array<E>): void;
+	/**
+	 * Append new errors in this field.
+	 *
+	 * **triggers event**: 'error'
 	 *
 	 * @param errors new errors
 	 */
@@ -108,30 +134,29 @@ export interface FieldNode<T, E extends FieldError> {
 	 */
 	isTouched(): boolean;
 	/**
-	 * Notify the node of a event type to be published for itself and/or broadcasted for
-	 * its parents (`up`) or childrens (`down`).
+	 * Notify the node of a event to be published.
 	 *
-	 * Broadcast options:
-	 *
-	 * - `up`: all the node parents.
-	 * - `down`: all the node childrens.
-	 * - `none`: only itself.
-	 *
-	 * @param type - event type
-	 * @param {'up' | 'down' | 'none'} [broadcast=none] - broadcast direction
+	 * @param event - event
 	 */
-	notify(type: NodeEventType, broadcast?: EventBroadcast): void;
+	notify(notification: NodeNotification<T, E>): void;
 	/**
 	 * Destructs the node and detaches itself from the parent.
 	 */
 	dispose(): void;
 }
 
+// function signalValueUpdate(nearestNode: 'up' | 'down') {}
+
+export interface NodeAttachment {
+	detach: () => void;
+	path: string;
+}
+
 export interface GroupNode<T, K extends FieldKey, V, E extends FieldError> extends FieldNode<T, E> {
 	/**
 	 * Attach a field node into the group.
 	 *
-	 * **triggers events**: 'value'
+	 * **triggers event**: 'value'
 	 *
 	 * @param field group field
 	 * @param node child node
@@ -141,7 +166,7 @@ export interface GroupNode<T, K extends FieldKey, V, E extends FieldError> exten
 	/**
 	 * Remove a field node from the group.
 	 *
-	 * **triggers events**: 'value'
+	 * **triggers event**: 'value'
 	 *
 	 * @param field group field
 	 * @returns true if the node was removed
@@ -151,10 +176,21 @@ export interface GroupNode<T, K extends FieldKey, V, E extends FieldError> exten
 	getNode(field: K): FieldNode<V, E> | null;
 
 	extractValue(field: K): Option<V>;
-	patchValue(field: K, value: V): void;
 
-	extractErrors(field: K): Array<E>;
-
+	/**
+	 * Modifies the field in the node group.
+	 *
+	 * @param field group field
+	 * @param value field value
+	 * @returns node value
+	 */
+	patchValue(field: K, value: V): Option<T>;
+	/**
+	 * Returns if the nested nodes has some error.
+	 *
+	 * @returns if the nested nodes has some error
+	 */
+	hasNestedError(): boolean;
 	/**
 	 * Field focus within event handler.
 	 *

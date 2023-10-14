@@ -1,14 +1,13 @@
 import {
 	EqualFn,
 	FieldError,
-	NodeEventType,
 	FieldKey,
 	FieldNode,
 	GroupNode,
 	NodeListener,
 	defaultEqualFn,
 	Option,
-	EventBroadcast,
+	NodeNotification,
 } from '@/Field';
 
 export interface FieldControlInput<F extends FieldKey, T, P, E extends FieldError> {
@@ -35,6 +34,7 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 		this.touched = false;
 		this.active = false;
 		this.modified = false;
+		this.errors = [];
 		this.equalFn = equalFn;
 		this.subscriber = subscriber;
 
@@ -54,7 +54,7 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 		this.parent.patchValue(this.field, value);
 
 		this.subscriber?.({ type: 'value', data: value });
-		this.parent.notify('value', 'up');
+		this.parent.notify({ type: 'nested-value-updated' });
 	}
 
 	public reset(): void {
@@ -62,13 +62,19 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 	}
 
 	public getErrors(): Array<E> {
-		return this.parent.extractErrors(this.field);
+		return this.errors;
+	}
+
+	public setErrors(errors: Array<E>): void {
+		this.errors = errors;
+
+		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
 	public appendErrors(errors: Array<E>): void {
-		this.parent.appendErrors(errors);
+		this.errors.push(...errors);
 
-		this.subscriber?.({ type: 'error', errors: this.getErrors() });
+		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
 	public path(): string {
@@ -90,7 +96,7 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 	}
 
 	public isValid(): boolean {
-		return this.parent.extractErrors(this.field).length === 0;
+		return this.errors.length === 0;
 	}
 
 	public isDirty(): boolean {
@@ -109,19 +115,20 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 		return this.touched;
 	}
 
-	public notify(type: NodeEventType, broadcast: EventBroadcast = 'none'): void {
-		switch (type) {
-			case 'value':
+	public notify(notification: NodeNotification<T, E>): void {
+		switch (notification.type) {
+			case 'error':
+				this.errors = notification.errors;
+				this.subscriber?.({ type: 'error', errors: this.errors });
+				break;
+			case 'nested-value-updated':
 				this.modified = true;
 				this.subscriber?.({ type: 'value', data: this.getValue() });
 				break;
-			case 'error':
-				this.subscriber?.({ type: 'error', errors: this.getErrors() });
+			case 'parent-value-updated':
+				this.modified = true;
+				this.subscriber?.({ type: 'value', data: notification.data });
 				break;
-		}
-
-		if (broadcast === 'up') {
-			this.parent.notify(type, 'up');
 		}
 	}
 
@@ -136,6 +143,7 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 	private touched: boolean;
 	private active: boolean;
 	private modified: boolean;
+	private errors: Array<E>;
 
 	private readonly equalFn: EqualFn<T>;
 	private readonly subscriber: NodeListener<T, E> | null;
