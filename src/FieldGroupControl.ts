@@ -72,7 +72,7 @@ export class FieldGroupControl<
 		this.modified = true;
 		this.composer.patch(group, field, value as V);
 		this.subscriber?.({ type: 'value', data: group });
-		this.parent.notify({ type: 'nested-value-updated' });
+		this.parent.notify({ node: 'child' });
 
 		return path;
 	}
@@ -85,7 +85,7 @@ export class FieldGroupControl<
 			this.modified = true;
 			this.composer.delete(group, field);
 			this.subscriber?.({ type: 'value', data: group });
-			this.parent.notify({ type: 'nested-value-updated' });
+			this.parent.notify({ node: 'child' });
 		}
 		return deleted;
 	}
@@ -145,11 +145,11 @@ export class FieldGroupControl<
 
 		for (const [field, node] of this.nodes.entries()) {
 			const data = this.composer.extract(value, field);
-			node.notify({ type: 'parent-value-updated', data });
+			node.notify({ node: 'parent', data });
 		}
 
 		this.subscriber?.({ type: 'value', data: this.getValue() });
-		this.parent.notify({ type: 'nested-value-updated' });
+		this.parent.notify({ node: 'child' });
 	}
 
 	public reset(): void {
@@ -218,27 +218,27 @@ export class FieldGroupControl<
 	}
 
 	public notify(notification: NodeNotification<T>): void {
-		switch (notification.type) {
-			case 'nested-value-updated':
+		switch (notification.node) {
+			case 'child':
 				this.modified = true;
 				this.subscriber?.({ type: 'value', data: this.getValue() });
-				this.parent.notify({ type: 'nested-value-updated' });
+				this.parent.notify({ node: 'child' });
 				break;
 
-			case 'parent-value-updated':
+			case 'parent':
 				this.modified = true;
 				this.subscriber?.({ type: 'value', data: notification.data });
 
 				if (!notification.data) {
 					for (const node of this.nodes.values()) {
-						node.notify({ type: 'parent-value-updated', data: undefined });
+						node.notify({ node: 'parent', data: undefined });
 					}
 					break;
 				}
 
 				for (const [field, node] of this.nodes.entries()) {
 					const data = this.composer.extract(notification.data, field);
-					node.notify({ type: 'parent-value-updated', data });
+					node.notify({ node: 'parent', data });
 				}
 				break;
 		}

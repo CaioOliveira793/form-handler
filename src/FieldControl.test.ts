@@ -471,3 +471,78 @@ describe('FieldControl error manipulation', () => {
 		assert.strictEqual(form.isFormValid(), false);
 	});
 });
+
+describe('FieldControl value mutation', () => {
+	it('start the node value to initial on attachment', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			parent: addressField,
+			field: 'street',
+			initial: 'test',
+		});
+
+		assert.deepStrictEqual(streetField.getInitialValue(), 'test');
+		assert.deepStrictEqual(streetField.getValue(), 'test');
+
+		assert.deepStrictEqual(addressField.getValue(), { street: 'test' });
+	});
+
+	it('set the node value mutating the parent node', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			parent: addressField,
+			field: 'street',
+			initial: null,
+		});
+
+		assert.deepStrictEqual(addressField.getValue(), { street: null });
+		assert.deepStrictEqual(streetField.getInitialValue(), null);
+
+		streetField.setValue('another test');
+
+		assert.deepStrictEqual(streetField.getInitialValue(), null);
+		assert.deepStrictEqual(streetField.getValue(), 'another test');
+
+		assert.deepStrictEqual(addressField.getValue(), { street: 'another test' });
+	});
+
+	it('reset the node value to initial', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			parent: addressField,
+			field: 'street',
+			initial: null,
+		});
+
+		streetField.setValue('another test');
+
+		assert.deepStrictEqual(streetField.getInitialValue(), null);
+		assert.deepStrictEqual(streetField.getValue(), 'another test');
+
+		streetField.reset();
+
+		assert.deepStrictEqual(streetField.getValue(), null);
+		assert.deepStrictEqual(addressField.getValue(), { street: null });
+	});
+});

@@ -7,18 +7,16 @@ export interface FieldError {
 
 export type Option<T> = T | undefined;
 
-export interface NodeParentValueUpdatedNotification<T> {
-	type: 'parent-value-updated';
+export interface ParentNodeUpdated<T> {
+	node: 'parent';
 	data: Option<T>;
 }
 
-export interface NodeNestedValueUpdatedNotification {
-	type: 'nested-value-updated';
+export interface ChildNodeUpdated {
+	node: 'child';
 }
 
-export type NodeNotification<T> =
-	| NodeParentValueUpdatedNotification<T>
-	| NodeNestedValueUpdatedNotification;
+export type NodeNotification<T> = ParentNodeUpdated<T> | ChildNodeUpdated;
 
 export interface NodeValueEvent<T> {
 	type: 'value';
@@ -137,9 +135,9 @@ export interface FieldNode<T, E extends FieldError> {
 	 */
 	isTouched(): boolean;
 	/**
-	 * Notify the node of a event to be published.
+	 * Notify the node of a internal update.
 	 *
-	 * @param event - event
+	 * @param notification - node update notification
 	 */
 	notify(notification: NodeNotification<T>): void;
 	/**
@@ -149,6 +147,8 @@ export interface FieldNode<T, E extends FieldError> {
 }
 
 // function signalValueUpdate(nearestNode: 'up' | 'down') {}
+
+// function notify(): void {}
 
 /**
  * Node attachment

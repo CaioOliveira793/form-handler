@@ -10,8 +10,8 @@
     - [ ] notification
     - [ ] subscription
   - value
-    - [ ] get/set value
-    - [ ] reset value
+    - [x] get/set value
+    - [x] reset value
   - error
     - [x] replace errors
     - [x] append errors

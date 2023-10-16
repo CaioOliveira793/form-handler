@@ -54,7 +54,7 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 		this.parent.patchValue(this.field, value);
 
 		this.subscriber?.({ type: 'value', data: value });
-		this.parent.notify({ type: 'nested-value-updated' });
+		this.parent.notify({ node: 'child' });
 	}
 
 	public reset(): void {
@@ -122,13 +122,11 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 	}
 
 	public notify(notification: NodeNotification<T>): void {
-		switch (notification.type) {
-			case 'nested-value-updated':
-				this.modified = true;
-				this.subscriber?.({ type: 'value', data: this.getValue() });
+		switch (notification.node) {
+			case 'child':
 				break;
 
-			case 'parent-value-updated':
+			case 'parent':
 				this.modified = true;
 				this.subscriber?.({ type: 'value', data: notification.data });
 				break;

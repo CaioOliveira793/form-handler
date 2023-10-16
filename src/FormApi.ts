@@ -199,7 +199,7 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 
 		for (const [field, node] of this.nodes.entries()) {
 			const data = this.composer.extract(this.value, field);
-			node.notify({ type: 'parent-value-updated', data });
+			node.notify({ node: 'parent', data });
 		}
 
 		this.subscriber?.({ type: 'value', data: this.value });
@@ -276,8 +276,8 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 	}
 
 	public notify(notification: NodeNotification<T>): void {
-		switch (notification.type) {
-			case 'nested-value-updated': {
+		switch (notification.node) {
+			case 'child': {
 				this.modified = true;
 				this.subscriber?.({ type: 'value', data: this.value });
 
@@ -287,7 +287,7 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 				break;
 			}
 
-			case 'parent-value-updated':
+			case 'parent':
 				break;
 		}
 	}
