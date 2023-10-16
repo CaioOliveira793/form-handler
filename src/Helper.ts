@@ -15,6 +15,6 @@ export function distributeErrors<E extends FieldError, K extends FieldKey, T>(
 			}
 		}
 
-		node.notify({ type: 'error', errors: fieldErrors });
+		node.handleValidation(fieldErrors);
 	}
 }

@@ -16,10 +16,9 @@ export interface NodeNestedValueUpdatedNotification {
 	type: 'nested-value-updated';
 }
 
-export type NodeNotification<T, E extends FieldError> =
+export type NodeNotification<T> =
 	| NodeParentValueUpdatedNotification<T>
-	| NodeNestedValueUpdatedNotification
-	| NodeErrorEvent<E>;
+	| NodeNestedValueUpdatedNotification;
 
 export interface NodeValueEvent<T> {
 	type: 'value';
@@ -88,6 +87,12 @@ export interface FieldNode<T, E extends FieldError> {
 	 */
 	appendErrors(errors: Array<E>): void;
 	/**
+	 * Handle all errors for this node returned from the form validation.
+	 *
+	 * @param errors error list produced from the validation
+	 */
+	handleValidation(errors: Array<E>): void;
+	/**
 	 * Field node path.
 	 *
 	 * @returns field path from the root form node to this node
@@ -136,7 +141,7 @@ export interface FieldNode<T, E extends FieldError> {
 	 *
 	 * @param event - event
 	 */
-	notify(notification: NodeNotification<T, E>): void;
+	notify(notification: NodeNotification<T>): void;
 	/**
 	 * Destructs the node and detaches itself from the parent.
 	 */

@@ -77,6 +77,12 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
+	public handleValidation(errors: Array<E>): void {
+		this.errors = errors;
+
+		this.subscriber?.({ type: 'error', errors: this.errors });
+	}
+
 	public path(): string {
 		return this.nodepath;
 	}
@@ -115,16 +121,13 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 		return this.touched;
 	}
 
-	public notify(notification: NodeNotification<T, E>): void {
+	public notify(notification: NodeNotification<T>): void {
 		switch (notification.type) {
-			case 'error':
-				this.errors = notification.errors;
-				this.subscriber?.({ type: 'error', errors: this.errors });
-				break;
 			case 'nested-value-updated':
 				this.modified = true;
 				this.subscriber?.({ type: 'value', data: this.getValue() });
 				break;
+
 			case 'parent-value-updated':
 				this.modified = true;
 				this.subscriber?.({ type: 'value', data: notification.data });

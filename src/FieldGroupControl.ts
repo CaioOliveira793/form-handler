@@ -172,6 +172,13 @@ export class FieldGroupControl<
 		this.subscriber?.({ type: 'error', errors: this.getErrors() });
 	}
 
+	public handleValidation(errors: Array<E>): void {
+		this.errors = errors;
+		this.subscriber?.({ type: 'error', errors: this.errors });
+
+		distributeErrors(this.errors, this.nodes, this.nodepath + '.');
+	}
+
 	public path(): string {
 		return this.nodepath;
 	}
@@ -210,15 +217,8 @@ export class FieldGroupControl<
 		return this.touched;
 	}
 
-	public notify(notification: NodeNotification<T, E>): void {
+	public notify(notification: NodeNotification<T>): void {
 		switch (notification.type) {
-			case 'error':
-				this.errors = notification.errors;
-				this.subscriber?.({ type: 'error', errors: this.errors });
-
-				distributeErrors(this.errors, this.nodes, this.nodepath + '.');
-				break;
-
 			case 'nested-value-updated':
 				this.modified = true;
 				this.subscriber?.({ type: 'value', data: this.getValue() });
