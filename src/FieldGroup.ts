@@ -1,21 +1,19 @@
 import {
-	EqualFn,
 	NodeError,
-	FieldKey,
+	NodeKey,
 	FieldNode,
 	GroupComposer,
 	GroupNode,
 	NodeSubscriber,
-	defaultEqualFn,
 	Option,
 	NodeNotification,
-} from '@/Field';
-import { distributeErrors } from '@/Helper';
+} from '@/NodeType';
+import { EqualFn, defaultEqualFn, distributeErrors } from '@/Helper';
 
-export interface FieldGroupControlInput<
-	F extends FieldKey,
+export interface FieldGroupInput<
+	F extends NodeKey,
 	T,
-	K extends FieldKey,
+	K extends NodeKey,
 	V,
 	P,
 	E extends NodeError,
@@ -28,8 +26,8 @@ export interface FieldGroupControlInput<
 	subscriber?: NodeSubscriber<T, E> | null;
 }
 
-export class FieldGroupControl<F extends FieldKey, T, K extends FieldKey, V, P, E extends NodeError>
-	implements FieldNode<T, E>, GroupNode<T, K, V, E>
+export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends NodeError>
+	implements GroupNode<T, K, V, E>
 {
 	public constructor({
 		field,
@@ -38,7 +36,7 @@ export class FieldGroupControl<F extends FieldKey, T, K extends FieldKey, V, P, 
 		initial = composer.default(),
 		equalFn = defaultEqualFn,
 		subscriber = null,
-	}: FieldGroupControlInput<F, T, K, V, P, E>) {
+	}: FieldGroupInput<F, T, K, V, P, E>) {
 		this.field = field;
 		this.parent = parent;
 		this.nodes = new Map();

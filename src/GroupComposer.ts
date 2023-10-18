@@ -1,8 +1,8 @@
-import { FieldKey, GroupComposer } from './Field';
+import { NodeKey, GroupComposer } from '@/NodeType';
 
 export type ArrayComposer<T> = GroupComposer<Array<T>, number, T>;
 
-export const ArrayGroupComposer = {
+export const ArrayGroupComposer = Object.freeze({
 	default() {
 		return [];
 	},
@@ -16,19 +16,19 @@ export const ArrayGroupComposer = {
 	patch(group: Array<unknown>, key: number, value: unknown): void {
 		group[key] = value;
 	},
-	delete(group, key) {
+	delete(group: Array<unknown>, key: number) {
 		delete group[key];
 	},
 	extract(group: Array<unknown>, key: number): unknown {
 		return group[key];
 	},
-} as ArrayComposer<unknown>;
+}) as Readonly<ArrayComposer<unknown>>;
 
-export type ObjectComposer<O extends object> = keyof O extends FieldKey
+export type ObjectComposer<O extends object> = keyof O extends NodeKey
 	? GroupComposer<O, keyof O, O[keyof O]>
-	: GroupComposer<O, Extract<keyof O, FieldKey>, O[keyof O]>;
+	: GroupComposer<O, Extract<keyof O, NodeKey>, O[keyof O]>;
 
-export const ObjectGroupComposer = {
+export const ObjectGroupComposer = Object.freeze({
 	default() {
 		return {};
 	},
@@ -38,10 +38,10 @@ export const ObjectGroupComposer = {
 	patch(group: Record<string, unknown>, key: string, value: unknown): void {
 		group[key] = value;
 	},
-	delete(group, key) {
+	delete(group: Record<string, unknown>, key: string) {
 		delete group[key];
 	},
 	extract(group: Record<string, unknown>, key: string): unknown {
 		return group[key];
 	},
-} as ObjectComposer<object>;
+}) as ObjectComposer<object>;

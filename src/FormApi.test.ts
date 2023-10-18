@@ -1,8 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { FormApi } from '@/FormApi';
-import { FieldControl } from '@/FieldControl';
-import { FieldGroupControl } from '@/FieldGroupControl';
+import { Field } from '@/Field';
+import { FieldGroup } from '@/FieldGroup';
 import {
 	ArrayComposer,
 	ArrayGroupComposer,
@@ -39,33 +39,33 @@ describe('FormApi composition', () => {
 			submit: () => {},
 		});
 
-		/*const paymentNode = */ new FieldControl({
+		/*const paymentNode = */ new Field({
 			parent: formApi,
 			field: 'payment',
 			initial: CheckoutPayment.CreditCard,
 		});
-		const productsNode = new FieldGroupControl({
+		const productsNode = new FieldGroup({
 			parent: formApi,
 			field: 'products',
 			composer: ArrayGroupComposer as ArrayComposer<Product>,
 		});
-		/*const addressNode = */ new FieldGroupControl({
+		/*const addressNode = */ new FieldGroup({
 			parent: formApi,
 			field: 'address',
 			composer: ObjectGroupComposer as ObjectComposer<Address>,
 			initial: null,
 		});
-		const product0Node = new FieldGroupControl({
+		const product0Node = new FieldGroup({
 			parent: productsNode,
 			field: 0,
 			composer: ObjectGroupComposer as ObjectComposer<Product>,
 		});
-		/*const product1skuNode = */ new FieldControl({
+		/*const product1skuNode = */ new Field({
 			parent: product0Node,
 			field: 'sku',
 			initial: '123',
 		});
-		/*const product1priceNode = */ new FieldControl({
+		/*const product1priceNode = */ new Field({
 			parent: product0Node,
 			field: 'price',
 			initial: 249.99,

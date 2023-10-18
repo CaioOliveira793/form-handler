@@ -1,16 +1,14 @@
 import {
 	NodeError,
-	FieldKey,
+	NodeKey,
 	GroupComposer,
-	EqualFn,
 	NodeSubscriber,
 	FieldNode,
 	GroupNode,
-	defaultEqualFn,
 	Option,
 	NodeNotification,
-} from '@/Field';
-import { distributeErrors } from '@/Helper';
+} from '@/NodeType';
+import { EqualFn, defaultEqualFn, distributeErrors } from '@/Helper';
 
 /**
  * Form validation function
@@ -28,7 +26,7 @@ export type ValidateFormRejectionHandler = (error: unknown) => void;
  * @param data form data
  * @param formApi reference to a formApi instance
  */
-export type SubmitFormFn<T, K extends FieldKey, V, E extends NodeError> = (
+export type SubmitFormFn<T, K extends NodeKey, V, E extends NodeError> = (
 	data: T,
 	formApi: FormApi<T, K, V, E>
 ) => Promise<Array<E>> | Promise<void> | Array<E> | void;
@@ -38,7 +36,7 @@ export type SubmitFormFn<T, K extends FieldKey, V, E extends NodeError> = (
  */
 export type ValidationTrigger = 'focus' | 'blur' | 'value';
 
-export interface FormApiInput<T, K extends FieldKey, V, E extends NodeError> {
+export interface FormApiInput<T, K extends NodeKey, V, E extends NodeError> {
 	composer: GroupComposer<T, K, V>;
 	initial?: T;
 	/**
@@ -66,7 +64,7 @@ async function validateFn() {
 	return [];
 }
 
-export class FormApi<T, K extends FieldKey, V, E extends NodeError>
+export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	implements FieldNode<T, E>, GroupNode<T, K, V, E>
 {
 	public constructor({

@@ -1,6 +1,22 @@
-import { NodeError, FieldKey, FieldNode } from '@/Field';
+import { NodeError, NodeKey, FieldNode } from '@/NodeType';
 
-export function distributeErrors<E extends NodeError, K extends FieldKey, T>(
+/**
+ * Equality comparison function.
+ */
+export type EqualFn<T = unknown> = (a: T | undefined, b: T | undefined) => boolean;
+
+/**
+ * Default equality comparison.
+ *
+ * @param a
+ * @param b
+ * @returns strict equality comparison `a === b`
+ */
+export function defaultEqualFn<T = unknown>(a: T | undefined, b: T | undefined): boolean {
+	return a === b;
+}
+
+export function distributeErrors<E extends NodeError, K extends NodeKey, T>(
 	errors: Array<E>,
 	nodes: Map<K, FieldNode<T, E>>,
 	fieldPrefix: string = ''
