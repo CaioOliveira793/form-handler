@@ -1,24 +1,24 @@
 import {
 	EqualFn,
-	FieldError,
+	NodeError,
 	FieldKey,
 	FieldNode,
 	GroupNode,
-	NodeListener,
+	NodeSubscriber,
 	defaultEqualFn,
 	Option,
 	NodeNotification,
 } from '@/Field';
 
-export interface FieldControlInput<F extends FieldKey, T, P, E extends FieldError> {
+export interface FieldControlInput<F extends FieldKey, T, P, E extends NodeError> {
 	field: F;
 	parent: GroupNode<P, F, T, E>;
 	initial?: T;
 	equalFn?: EqualFn<T>;
-	subscriber?: NodeListener<T, E> | null;
+	subscriber?: NodeSubscriber<T, E> | null;
 }
 
-export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
+export class FieldControl<F extends FieldKey, T, P, E extends NodeError>
 	implements FieldNode<T, E>
 {
 	public constructor({
@@ -53,7 +53,7 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 		this.modified = true;
 		this.parent.patchValue(this.field, value);
 
-		this.subscriber?.({ type: 'value', data: value });
+		this.subscriber?.({ type: 'value', value });
 		this.parent.notify({ node: 'child' });
 	}
 
@@ -128,7 +128,7 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 
 			case 'parent':
 				this.modified = true;
-				this.subscriber?.({ type: 'value', data: notification.data });
+				this.subscriber?.({ type: 'value', value: notification.value });
 				break;
 		}
 	}
@@ -147,5 +147,5 @@ export class FieldControl<F extends FieldKey, T, P, E extends FieldError>
 	private errors: Array<E>;
 
 	private readonly equalFn: EqualFn<T>;
-	private readonly subscriber: NodeListener<T, E> | null;
+	private readonly subscriber: NodeSubscriber<T, E> | null;
 }

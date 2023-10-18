@@ -1,6 +1,6 @@
-import { FieldError, FieldKey, FieldNode } from '@/Field';
+import { NodeError, FieldKey, FieldNode } from '@/Field';
 
-export function distributeErrors<E extends FieldError, K extends FieldKey, T>(
+export function distributeErrors<E extends NodeError, K extends FieldKey, T>(
 	errors: Array<E>,
 	nodes: Map<K, FieldNode<T, E>>,
 	fieldPrefix: string = ''

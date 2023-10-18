@@ -1,9 +1,9 @@
 import {
-	FieldError,
+	NodeError,
 	FieldKey,
 	GroupComposer,
 	EqualFn,
-	NodeListener,
+	NodeSubscriber,
 	FieldNode,
 	GroupNode,
 	defaultEqualFn,
@@ -15,7 +15,7 @@ import { distributeErrors } from '@/Helper';
 /**
  * Form validation function
  */
-export type ValidateFormFn<T, E extends FieldError> = (data: T) => Promise<Array<E>>;
+export type ValidateFormFn<T, E extends NodeError> = (data: T) => Promise<Array<E>>;
 
 /**
  * Form validation rejection handler
@@ -28,7 +28,7 @@ export type ValidateFormRejectionHandler = (error: unknown) => void;
  * @param data form data
  * @param formApi reference to a formApi instance
  */
-export type SubmitFormFn<T, K extends FieldKey, V, E extends FieldError> = (
+export type SubmitFormFn<T, K extends FieldKey, V, E extends NodeError> = (
 	data: T,
 	formApi: FormApi<T, K, V, E>
 ) => Promise<Array<E>> | Promise<void> | Array<E> | void;
@@ -38,7 +38,7 @@ export type SubmitFormFn<T, K extends FieldKey, V, E extends FieldError> = (
  */
 export type ValidationTrigger = 'focus' | 'blur' | 'value';
 
-export interface FormApiInput<T, K extends FieldKey, V, E extends FieldError> {
+export interface FormApiInput<T, K extends FieldKey, V, E extends NodeError> {
 	composer: GroupComposer<T, K, V>;
 	initial?: T;
 	/**
@@ -51,7 +51,7 @@ export interface FormApiInput<T, K extends FieldKey, V, E extends FieldError> {
 	validate?: ValidateFormFn<T, E>;
 	validateRejection?: ValidateFormRejectionHandler;
 	equalFn?: EqualFn<T>;
-	subscriber?: NodeListener<T, E> | null;
+	subscriber?: NodeSubscriber<T, E> | null;
 }
 
 function noopFn() {
@@ -66,7 +66,7 @@ async function validateFn() {
 	return [];
 }
 
-export class FormApi<T, K extends FieldKey, V, E extends FieldError>
+export class FormApi<T, K extends FieldKey, V, E extends NodeError>
 	implements FieldNode<T, E>, GroupNode<T, K, V, E>
 {
 	public constructor({
@@ -119,7 +119,7 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 
 		this.modified = true;
 		this.composer.patch(this.value, field, value as V);
-		this.subscriber?.({ type: 'value', data: this.value });
+		this.subscriber?.({ type: 'value', value: this.value });
 
 		if (this.validationTrigger === 'value') {
 			this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
@@ -134,7 +134,7 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 		if (this.value) {
 			this.modified = true;
 			this.composer.delete(this.value, field);
-			this.subscriber?.({ type: 'value', data: this.value });
+			this.subscriber?.({ type: 'value', value: this.value });
 
 			if (this.validationTrigger === 'value') {
 				this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
@@ -199,10 +199,10 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 
 		for (const [field, node] of this.nodes.entries()) {
 			const data = this.composer.extract(this.value, field);
-			node.notify({ node: 'parent', data });
+			node.notify({ node: 'parent', value: data });
 		}
 
-		this.subscriber?.({ type: 'value', data: this.value });
+		this.subscriber?.({ type: 'value', value: this.value });
 
 		if (this.validationTrigger === 'value') {
 			this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
@@ -279,7 +279,7 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 		switch (notification.node) {
 			case 'child': {
 				this.modified = true;
-				this.subscriber?.({ type: 'value', data: this.value });
+				this.subscriber?.({ type: 'value', value: this.value });
 
 				if (this.validationTrigger === 'value') {
 					this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
@@ -322,5 +322,5 @@ export class FormApi<T, K extends FieldKey, V, E extends FieldError>
 	private readonly validateFn: ValidateFormFn<T, E>;
 	private readonly validateRejection: ValidateFormRejectionHandler;
 	private readonly equalFn: EqualFn<T>;
-	private readonly subscriber: NodeListener<T, E> | null;
+	private readonly subscriber: NodeSubscriber<T, E> | null;
 }

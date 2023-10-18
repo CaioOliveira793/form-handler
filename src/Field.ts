@@ -1,7 +1,9 @@
 export type FieldKey = string | number;
 
-export interface FieldError {
-	/** Structure path for the value of this error */
+export interface NodeError {
+	/**
+	 * Structure path for the value of this error
+	 */
 	path: string;
 }
 
@@ -9,7 +11,7 @@ export type Option<T> = T | undefined;
 
 export interface ParentNodeUpdated<T> {
 	node: 'parent';
-	data: Option<T>;
+	value: Option<T>;
 }
 
 export interface ChildNodeUpdated {
@@ -20,22 +22,22 @@ export type NodeNotification<T> = ParentNodeUpdated<T> | ChildNodeUpdated;
 
 export interface NodeValueEvent<T> {
 	type: 'value';
-	data: Option<T>;
+	value: Option<T>;
 }
 
-export interface NodeErrorEvent<E extends FieldError> {
+export interface NodeErrorEvent<E extends NodeError> {
 	type: 'error';
 	errors: Array<E>;
 }
 
-export type NodeEvent<T, E extends FieldError> = NodeValueEvent<T> | NodeErrorEvent<E>;
+export type NodeEvent<T, E extends NodeError> = NodeValueEvent<T> | NodeErrorEvent<E>;
 
 /**
- * FieldNode event listener.
+ * Node event listener.
  */
-export type NodeListener<T, E extends FieldError> = (event: NodeEvent<T, E>) => void;
+export type NodeSubscriber<T, E extends NodeError> = (event: NodeEvent<T, E>) => void;
 
-export interface FieldNode<T, E extends FieldError> {
+export interface FieldNode<T, E extends NodeError> {
 	/**
 	 * Return the initial value of this field.
 	 *
@@ -87,6 +89,8 @@ export interface FieldNode<T, E extends FieldError> {
 	/**
 	 * Handle all errors for this node returned from the form validation.
 	 *
+	 * **triggers event**: 'error'
+	 *
 	 * @param errors error list produced from the validation
 	 */
 	handleValidation(errors: Array<E>): void;
@@ -137,6 +141,8 @@ export interface FieldNode<T, E extends FieldError> {
 	/**
 	 * Notify the node of a internal update.
 	 *
+	 * **triggers event**: 'value'
+	 *
 	 * @param notification - node update notification
 	 */
 	notify(notification: NodeNotification<T>): void;
@@ -145,10 +151,6 @@ export interface FieldNode<T, E extends FieldError> {
 	 */
 	dispose(): void;
 }
-
-// function signalValueUpdate(nearestNode: 'up' | 'down') {}
-
-// function notify(): void {}
 
 /**
  * Node attachment
@@ -168,9 +170,7 @@ export interface NodeAttachment {
 	path: string;
 }
 
-export type GroupNodeSubscriber<T> = (data: Option<T>) => void;
-
-export interface GroupNode<T, K extends FieldKey, V, E extends FieldError> extends FieldNode<T, E> {
+export interface GroupNode<T, K extends FieldKey, V, E extends NodeError> extends FieldNode<T, E> {
 	/**
 	 * Attach a field node into the group.
 	 *

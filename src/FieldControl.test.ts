@@ -4,7 +4,7 @@ import { FormApi } from '@/FormApi';
 import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
 import { FieldControl } from '@/FieldControl';
 import { FieldGroupControl } from '@/FieldGroupControl';
-import { FieldError } from '@/Field';
+import { NodeError, NodeEvent, NodeSubscriber } from '@/Field';
 
 interface TestAddress {
 	state: string;
@@ -17,12 +17,20 @@ interface TestFormData {
 	address: TestAddress;
 }
 
-interface TestError extends FieldError {
+interface TestError extends NodeError {
 	message: string;
 }
 
 function delay(time: number): Promise<void> {
 	return new Promise(resolver => setTimeout(resolver, time));
+}
+
+function makeSubscriber<T, E extends NodeError>(
+	history: Array<NodeEvent<T, E>>
+): NodeSubscriber<T, E> {
+	return function subscriber(event: NodeEvent<T, E>) {
+		history.push(structuredClone(event));
+	};
 }
 
 describe('FieldControl state management', () => {
@@ -544,5 +552,370 @@ describe('FieldControl value mutation', () => {
 
 		assert.deepStrictEqual(streetField.getValue(), null);
 		assert.deepStrictEqual(addressField.getValue(), { street: null });
+	});
+});
+
+describe('FieldControl node composition', () => {
+	it('dispose a field node detaching itself from the form', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			parent: addressField,
+			field: 'street',
+			initial: null,
+		});
+
+		assert.equal(addressField.getNode('street'), streetField);
+
+		streetField.dispose();
+
+		assert.equal(addressField.getNode('street'), null);
+	});
+
+	it('have a path of fields form the root node', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			parent: addressField,
+			field: 'street',
+			initial: null,
+		});
+
+		assert.strictEqual(streetField.path(), 'address.street');
+	});
+});
+
+describe('FieldNode event subscription', () => {
+	it('publish a value event after setting a new value in the node', () => {
+		const history: Array<NodeEvent<string | null, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			subscriber: makeSubscriber(history),
+			parent: addressField,
+			field: 'street',
+			initial: null,
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		streetField.setValue('first');
+		assert.deepStrictEqual(history, [{ type: 'value', value: 'first' }]);
+
+		streetField.setValue('on ty');
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: 'first' },
+			{ type: 'value', value: 'on ty' },
+		]);
+
+		streetField.setValue('on typ');
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: 'first' },
+			{ type: 'value', value: 'on ty' },
+			{ type: 'value', value: 'on typ' },
+		]);
+
+		streetField.setValue('on type');
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: 'first' },
+			{ type: 'value', value: 'on ty' },
+			{ type: 'value', value: 'on typ' },
+			{ type: 'value', value: 'on type' },
+		]);
+	});
+
+	it('publish a value event after resetting the node', () => {
+		const history: Array<NodeEvent<string | null, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			subscriber: makeSubscriber(history),
+			parent: addressField,
+			field: 'street',
+			initial: null,
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		streetField.setValue('else');
+		assert.deepStrictEqual(history, [{ type: 'value', value: 'else' }]);
+
+		streetField.reset();
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: 'else' },
+			{ type: 'value', value: null },
+		]);
+
+		streetField.reset();
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: 'else' },
+			{ type: 'value', value: null },
+			{ type: 'value', value: null },
+		]);
+	});
+
+	it('publish an error event after setting an error in the node', () => {
+		const history: Array<NodeEvent<string | null, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			subscriber: makeSubscriber(history),
+			parent: addressField,
+			field: 'street',
+			initial: null,
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		streetField.setErrors([{ path: 'address.street', message: '#1' }]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address.street', message: '#1' }] },
+		]);
+
+		streetField.setErrors([{ path: 'address.street', message: 'none' }]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address.street', message: '#1' }] },
+			{ type: 'error', errors: [{ path: 'address.street', message: 'none' }] },
+		]);
+	});
+
+	it('publish an error event after appending new errors in the node', () => {
+		const history: Array<NodeEvent<string | null, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			subscriber: makeSubscriber(history),
+			parent: addressField,
+			field: 'street',
+			initial: null,
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		streetField.appendErrors([{ path: 'address.street', message: '#1' }]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address.street', message: '#1' }] },
+		]);
+
+		streetField.appendErrors([
+			{ path: 'address.street', message: 'none' },
+			{ path: 'address.street', message: 'some' },
+		]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address.street', message: '#1' }] },
+			{
+				type: 'error',
+				errors: [
+					{ path: 'address.street', message: '#1' },
+					{ path: 'address.street', message: 'none' },
+					{ path: 'address.street', message: 'some' },
+				],
+			},
+		]);
+	});
+
+	it('publish an error event after executing validation error handler', async () => {
+		const history: Array<NodeEvent<string | null, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validate: async (data: TestFormData) => {
+				if (!data?.address) return [];
+				if (!data.address.street) return [];
+				return [{ path: 'address.street', message: 'the field is invalid' }];
+			},
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			subscriber: makeSubscriber(history),
+			parent: addressField,
+			field: 'street',
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		streetField.setValue('invalid');
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: 'invalid' },
+			{ type: 'error', errors: [{ path: 'address.street', message: 'the field is invalid' }] },
+		]);
+	});
+
+	it('publish a value event after a parent node updated notification', () => {
+		const history: Array<NodeEvent<string | null, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validate: async (data: TestFormData) => {
+				if (!data?.address) return [];
+				if (!data.address.street) return [];
+				return [{ path: 'address.street', message: 'the field is invalid' }];
+			},
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			subscriber: makeSubscriber(history),
+			parent: addressField,
+			field: 'street',
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		addressField.setValue({ street: 'change', state: '' });
+
+		assert.deepStrictEqual(history, [{ type: 'value', value: 'change' }]);
+
+		streetField.notify({ node: 'parent', value: 'change again' });
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: 'change' },
+			{ type: 'value', value: 'change again' },
+		]);
+	});
+
+	it('not publish a value event after a child node updated notification', () => {
+		const history: Array<NodeEvent<string | null, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validate: async (data: TestFormData) => {
+				if (!data?.address) return [];
+				if (!data.address.street) return [];
+				return [{ path: 'address.street', message: 'the field is invalid' }];
+			},
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			subscriber: makeSubscriber(history),
+			parent: addressField,
+			field: 'street',
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		streetField.notify({ node: 'child' });
+
+		assert.deepStrictEqual(history, []);
+	});
+});
+
+describe('FieldNode update notification', () => {
+	it('process a notification from a parent node setting the field as modified', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validate: async (data: TestFormData) => {
+				if (!data?.address) return [];
+				if (!data.address.street) return [];
+				return [{ path: 'address.street', message: 'the field is invalid' }];
+			},
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			parent: addressField,
+			field: 'street',
+		});
+
+		assert.strictEqual(streetField.isModified(), false);
+
+		streetField.notify({ node: 'parent', value: 'fake' });
+
+		assert.strictEqual(streetField.isModified(), true);
+	});
+
+	it('ignore any notification from a child node', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validate: async (data: TestFormData) => {
+				if (!data?.address) return [];
+				if (!data.address.street) return [];
+				return [{ path: 'address.street', message: 'the field is invalid' }];
+			},
+		});
+		const addressField = new FieldGroupControl({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new FieldControl({
+			parent: addressField,
+			field: 'street',
+		});
+
+		// State assertion
+		assert.deepStrictEqual(streetField.isTouched(), false);
+		assert.deepStrictEqual(streetField.isActive(), false);
+		assert.deepStrictEqual(streetField.isModified(), false);
+		assert.deepStrictEqual(streetField.isValid(), true);
+		assert.deepStrictEqual(streetField.getErrors(), []);
+
+		streetField.notify({ node: 'child' });
+
+		assert.deepStrictEqual(streetField.isTouched(), false);
+		assert.deepStrictEqual(streetField.isActive(), false);
+		assert.deepStrictEqual(streetField.isModified(), false);
+		assert.deepStrictEqual(streetField.isValid(), true);
+		assert.deepStrictEqual(streetField.getErrors(), []);
 	});
 });

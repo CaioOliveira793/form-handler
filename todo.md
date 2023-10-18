@@ -4,11 +4,11 @@
 
 - FieldNode
   - path
-    - [ ] field composition
-    - [ ] path
+    - [x] field composition
+    - [x] path
   - pub/sub
-    - [ ] notification
-    - [ ] subscription
+    - [x] notification
+    - [x] subscription
   - value
     - [x] get/set value
     - [x] reset value

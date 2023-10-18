@@ -1,11 +1,11 @@
 import {
 	EqualFn,
-	FieldError,
+	NodeError,
 	FieldKey,
 	FieldNode,
 	GroupComposer,
 	GroupNode,
-	NodeListener,
+	NodeSubscriber,
 	defaultEqualFn,
 	Option,
 	NodeNotification,
@@ -18,24 +18,17 @@ export interface FieldGroupControlInput<
 	K extends FieldKey,
 	V,
 	P,
-	E extends FieldError,
+	E extends NodeError,
 > {
 	field: F;
 	parent: GroupNode<P, F, T, E>;
 	composer: GroupComposer<T, K, V>;
 	initial?: T;
 	equalFn?: EqualFn<T>;
-	subscriber?: NodeListener<T, E> | null;
+	subscriber?: NodeSubscriber<T, E> | null;
 }
 
-export class FieldGroupControl<
-		F extends FieldKey,
-		T,
-		K extends FieldKey,
-		V,
-		P,
-		E extends FieldError,
-	>
+export class FieldGroupControl<F extends FieldKey, T, K extends FieldKey, V, P, E extends NodeError>
 	implements FieldNode<T, E>, GroupNode<T, K, V, E>
 {
 	public constructor({
@@ -71,7 +64,7 @@ export class FieldGroupControl<
 
 		this.modified = true;
 		this.composer.patch(group, field, value as V);
-		this.subscriber?.({ type: 'value', data: group });
+		this.subscriber?.({ type: 'value', value: group });
 		this.parent.notify({ node: 'child' });
 
 		return path;
@@ -84,7 +77,7 @@ export class FieldGroupControl<
 		if (group) {
 			this.modified = true;
 			this.composer.delete(group, field);
-			this.subscriber?.({ type: 'value', data: group });
+			this.subscriber?.({ type: 'value', value: group });
 			this.parent.notify({ node: 'child' });
 		}
 		return deleted;
@@ -145,10 +138,10 @@ export class FieldGroupControl<
 
 		for (const [field, node] of this.nodes.entries()) {
 			const data = this.composer.extract(value, field);
-			node.notify({ node: 'parent', data });
+			node.notify({ node: 'parent', value: data });
 		}
 
-		this.subscriber?.({ type: 'value', data: this.getValue() });
+		this.subscriber?.({ type: 'value', value });
 		this.parent.notify({ node: 'child' });
 	}
 
@@ -221,24 +214,24 @@ export class FieldGroupControl<
 		switch (notification.node) {
 			case 'child':
 				this.modified = true;
-				this.subscriber?.({ type: 'value', data: this.getValue() });
+				this.subscriber?.({ type: 'value', value: this.getValue() });
 				this.parent.notify({ node: 'child' });
 				break;
 
 			case 'parent':
 				this.modified = true;
-				this.subscriber?.({ type: 'value', data: notification.data });
+				this.subscriber?.({ type: 'value', value: notification.value });
 
-				if (!notification.data) {
+				if (!notification.value) {
 					for (const node of this.nodes.values()) {
-						node.notify({ node: 'parent', data: undefined });
+						node.notify({ node: 'parent', value: undefined });
 					}
 					break;
 				}
 
 				for (const [field, node] of this.nodes.entries()) {
-					const data = this.composer.extract(notification.data, field);
-					node.notify({ node: 'parent', data });
+					const data = this.composer.extract(notification.value, field);
+					node.notify({ node: 'parent', value: data });
 				}
 				break;
 		}
@@ -263,5 +256,5 @@ export class FieldGroupControl<
 	private errors: Array<E>;
 
 	private readonly equalFn: EqualFn<T>;
-	private readonly subscriber: NodeListener<T, E> | null;
+	private readonly subscriber: NodeSubscriber<T, E> | null;
 }
