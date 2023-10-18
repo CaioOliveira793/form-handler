@@ -42,15 +42,24 @@
     - [ ] patch value
     - [ ] delete value
     - [ ] extract value
-  - error
-    - [ ] extract error
-  - state change
-    - [ ] focus within
-    - [ ] blur within
-    - [ ] valid
-    - [ ] dirty
-    - [ ] modified
-    - [ ] touched
+  - error manipulation
+    - [ ] replace errors
+    - [ ] append errors
+    - [ ] get errors
+    - [ ] handleValidation
+    - [ ] hasNestedError
+  - state management
+    - [x] focus within
+    - [x] blur within
+    - [x] valid
+    - [x] dirty
+    - [x] modified
+    - [x] touched
+
+80.92 | 85.29 | 72.53
+80.12 | 85.29 | 70.97
+80.12 | 84.16 | 70.97
+
 
 - FormApi
   - submit
@@ -89,7 +98,6 @@
 
 - [ ] form validation
 - [ ] form submition
-- [ ] clear field errors
 - [ ] clear form errors
 - [ ] field destroy on unregister
 - [ ] array node helper functions
@@ -100,7 +108,6 @@
   - `remove(index: number): void`
   - `insert(index: number, value: T): void`
   - `update(index: number, value: T): void`
-- [ ] use the [HTML startdard for form validation](https://developer.mozilla.org/en-US/docs/Learn/Forms/Form_validation)
 
 ## react-hook-form
 

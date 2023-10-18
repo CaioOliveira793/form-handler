@@ -152,24 +152,6 @@ export interface FieldNode<T, E extends NodeError> {
 	dispose(): void;
 }
 
-/**
- * Node attachment
- */
-export interface NodeAttachment {
-	/**
-	 * Notify for the parent node that its value was updated.
-	 */
-	notifyUpdate(): void;
-	/**
-	 * Remove a child node from the group.
-	 */
-	detach(): void;
-	/**
-	 * Path of field names from the root node to the attached node.
-	 */
-	path: string;
-}
-
 export interface GroupNode<T, K extends NodeKey, V, E extends NodeError> extends FieldNode<T, E> {
 	/**
 	 * Attach a field node into the group.
@@ -225,7 +207,6 @@ export interface GroupNode<T, K extends NodeKey, V, E extends NodeError> extends
 
 export interface GroupComposer<T, K extends NodeKey, V> {
 	default(): T;
-	assemble(attributes: Array<[K, V]>): T;
 	patch(group: T, key: K, value: V): void;
 	delete(group: T, key: K): void;
 	extract(group: T, key: K): Option<V>;

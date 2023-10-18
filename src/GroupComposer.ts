@@ -6,13 +6,6 @@ export const ArrayGroupComposer = Object.freeze({
 	default() {
 		return [];
 	},
-	assemble(attributes: Array<[number, unknown]>): Array<unknown> {
-		const group = [];
-		for (const [key, val] of attributes) {
-			group[key] = val;
-		}
-		return group;
-	},
 	patch(group: Array<unknown>, key: number, value: unknown): void {
 		group[key] = value;
 	},
@@ -31,9 +24,6 @@ export type ObjectComposer<O extends object> = keyof O extends NodeKey
 export const ObjectGroupComposer = Object.freeze({
 	default() {
 		return {};
-	},
-	assemble(attributes: Array<[string, unknown]>): Record<string, unknown> {
-		return Object.fromEntries(attributes);
 	},
 	patch(group: Record<string, unknown>, key: string, value: unknown): void {
 		group[key] = value;

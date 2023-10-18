@@ -65,7 +65,7 @@ async function validateFn() {
 }
 
 export class FormApi<T, K extends NodeKey, V, E extends NodeError>
-	implements FieldNode<T, E>, GroupNode<T, K, V, E>
+	implements GroupNode<T, K, V, E>
 {
 	public constructor({
 		composer,

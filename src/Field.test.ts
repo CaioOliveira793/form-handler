@@ -4,34 +4,8 @@ import { FormApi } from '@/FormApi';
 import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
 import { Field } from '@/Field';
 import { FieldGroup } from '@/FieldGroup';
-import { NodeError, NodeEvent, NodeSubscriber } from '@/NodeType';
-
-interface TestAddress {
-	state: string;
-	street: string;
-}
-
-interface TestFormData {
-	name: string;
-	email: string;
-	address: TestAddress;
-}
-
-interface TestError extends NodeError {
-	message: string;
-}
-
-function delay(time: number): Promise<void> {
-	return new Promise(resolver => setTimeout(resolver, time));
-}
-
-function makeSubscriber<T, E extends NodeError>(
-	history: Array<NodeEvent<T, E>>
-): NodeSubscriber<T, E> {
-	return function subscriber(event: NodeEvent<T, E>) {
-		history.push(structuredClone(event));
-	};
-}
+import { NodeEvent } from '@/NodeType';
+import { TestFormData, TestAddress, delay, TestError, makeSubscriber } from '@/TestUtils';
 
 describe('Field state management', () => {
 	it('change state on focus event', () => {
@@ -107,12 +81,12 @@ describe('Field state management', () => {
 	});
 
 	it('execute form validation on field focus event', () => {
-		const validationHistory: Array<TestFormData> = [];
+		const history: Array<TestFormData> = [];
 		const form = new FormApi({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
 			validationTrigger: 'focus',
 			validate: async data => {
-				validationHistory.push(structuredClone(data));
+				history.push(structuredClone(data));
 				return [];
 			},
 		});
@@ -127,14 +101,12 @@ describe('Field state management', () => {
 		streetField.setValue('Carlos Gomes');
 		streetField.handleFocus();
 
-		assert.deepStrictEqual(validationHistory, [
-			{ address: { street: 'Carlos Gomes', state: undefined } },
-		]);
+		assert.deepStrictEqual(history, [{ address: { street: 'Carlos Gomes', state: undefined } }]);
 
 		stateField.setValue('Bahia');
 		stateField.handleFocus();
 
-		assert.deepStrictEqual(validationHistory, [
+		assert.deepStrictEqual(history, [
 			{ address: { street: 'Carlos Gomes', state: undefined } },
 			{ address: { street: 'Carlos Gomes', state: 'Bahia' } },
 		]);
@@ -172,12 +144,12 @@ describe('Field state management', () => {
 	});
 
 	it('execute form validation on field blur event', () => {
-		const validationHistory: Array<TestFormData> = [];
+		const history: Array<TestFormData> = [];
 		const form = new FormApi({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
 			validationTrigger: 'blur',
 			validate: async data => {
-				validationHistory.push(structuredClone(data));
+				history.push(structuredClone(data));
 				return [];
 			},
 		});
@@ -192,14 +164,12 @@ describe('Field state management', () => {
 		streetField.setValue('Carlos Gomes');
 		streetField.handleBlur();
 
-		assert.deepStrictEqual(validationHistory, [
-			{ address: { street: 'Carlos Gomes', state: undefined } },
-		]);
+		assert.deepStrictEqual(history, [{ address: { street: 'Carlos Gomes', state: undefined } }]);
 
 		stateField.setValue('Bahia');
 		stateField.handleBlur();
 
-		assert.deepStrictEqual(validationHistory, [
+		assert.deepStrictEqual(history, [
 			{ address: { street: 'Carlos Gomes', state: undefined } },
 			{ address: { street: 'Carlos Gomes', state: 'Bahia' } },
 		]);
@@ -243,7 +213,7 @@ describe('Field state management', () => {
 		assert.strictEqual(field.isModified(), true);
 	});
 
-	it('change parent modified state on field value mutation', () => {
+	it('change parent state after a field value mutation', () => {
 		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
 		const addressField = new FieldGroup({
 			parent: form,
@@ -328,12 +298,12 @@ describe('Field state management', () => {
 	});
 
 	it('execute form validation on field change event', () => {
-		const validationHistory: Array<TestFormData> = [];
+		const history: Array<TestFormData> = [];
 		const form = new FormApi({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
 			validationTrigger: 'value',
 			validate: async data => {
-				validationHistory.push(structuredClone(data));
+				history.push(structuredClone(data));
 				return [];
 			},
 		});
@@ -347,7 +317,7 @@ describe('Field state management', () => {
 
 		streetField.setValue('L');
 
-		assert.deepStrictEqual(validationHistory, [
+		assert.deepStrictEqual(history, [
 			{ address: {} },
 			{ address: { street: undefined } },
 			{ address: { street: undefined, state: undefined } },
@@ -356,7 +326,7 @@ describe('Field state management', () => {
 
 		stateField.setValue('R');
 
-		assert.deepStrictEqual(validationHistory, [
+		assert.deepStrictEqual(history, [
 			{ address: {} },
 			{ address: { street: undefined } },
 			{ address: { street: undefined, state: undefined } },
@@ -366,12 +336,12 @@ describe('Field state management', () => {
 	});
 
 	it('change the field state to invalid when an error is present in the field', async () => {
-		const validationHistory: Array<TestFormData> = [];
+		const history: Array<TestFormData> = [];
 		const form = new FormApi({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
 			validationTrigger: 'value',
 			validate: async data => {
-				validationHistory.push(structuredClone(data));
+				history.push(structuredClone(data));
 
 				if (!data.address) return [];
 				if (!data.address.street) return [];
@@ -796,11 +766,6 @@ describe('Field event subscription', () => {
 
 		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			validate: async (data: TestFormData) => {
-				if (!data?.address) return [];
-				if (!data.address.street) return [];
-				return [{ path: 'address.street', message: 'the field is invalid' }];
-			},
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -832,11 +797,6 @@ describe('Field event subscription', () => {
 
 		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			validate: async (data: TestFormData) => {
-				if (!data?.address) return [];
-				if (!data.address.street) return [];
-				return [{ path: 'address.street', message: 'the field is invalid' }];
-			},
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -861,11 +821,6 @@ describe('Field update notification', () => {
 	it('process a notification from a parent node setting the field as modified', () => {
 		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			validate: async (data: TestFormData) => {
-				if (!data?.address) return [];
-				if (!data.address.street) return [];
-				return [{ path: 'address.street', message: 'the field is invalid' }];
-			},
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -887,11 +842,6 @@ describe('Field update notification', () => {
 	it('ignore any notification from a child node', () => {
 		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			validate: async (data: TestFormData) => {
-				if (!data?.address) return [];
-				if (!data.address.street) return [];
-				return [{ path: 'address.street', message: 'the field is invalid' }];
-			},
 		});
 		const addressField = new FieldGroup({
 			parent: form,
