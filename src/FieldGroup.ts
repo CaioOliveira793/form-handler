@@ -26,10 +26,6 @@ export interface FieldGroupInput<
 	subscriber?: NodeSubscriber<T, E> | null;
 }
 
-// TODO: add GroupField methods to handle nested errors within the group.
-// - getGroupErrors()
-// - isGroupValid()
-
 export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends NodeError>
 	implements GroupNode<T, K, V, E>
 {
@@ -105,13 +101,6 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 		this.modified = true;
 		this.composer.patch(group, field, value);
 		return group;
-	}
-
-	public hasNestedError(): boolean {
-		for (const node of this.nodes.values()) {
-			if (node.isValid()) return true;
-		}
-		return false;
 	}
 
 	public handleFocusWithin(): void {

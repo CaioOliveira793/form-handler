@@ -169,12 +169,6 @@ export interface GroupNode<T, K extends NodeKey, V, E extends NodeError> extends
 	 */
 	patchValue(field: K, value: V): Option<T>;
 	/**
-	 * Returns if the nested nodes has some error.
-	 *
-	 * @returns if the nested nodes has some error
-	 */
-	hasNestedError(): boolean;
-	/**
 	 * Field focus within event handler.
 	 *
 	 * Handle focus events caused by fields within this group.
