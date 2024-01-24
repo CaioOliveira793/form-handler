@@ -64,19 +64,6 @@ export class Field<F extends NodeKey, T, P, E extends NodeError> implements Fiel
 
 	public setErrors(errors: Array<E>): void {
 		this.errors = errors;
-
-		this.subscriber?.({ type: 'error', errors: this.errors });
-	}
-
-	public appendErrors(errors: Array<E>): void {
-		this.errors.push(...errors);
-
-		this.subscriber?.({ type: 'error', errors: this.errors });
-	}
-
-	public handleValidation(errors: Array<E>): void {
-		this.errors = errors;
-
 		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 

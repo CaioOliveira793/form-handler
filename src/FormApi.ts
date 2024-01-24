@@ -120,7 +120,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.subscriber?.({ type: 'value', value: this.value });
 
 		if (this.validationTrigger === 'value') {
-			this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
+			this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
 		}
 
 		return path;
@@ -135,7 +135,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 			this.subscriber?.({ type: 'value', value: this.value });
 
 			if (this.validationTrigger === 'value') {
-				this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
+				this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
 			}
 		}
 
@@ -171,7 +171,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.touched = true;
 
 		if (this.validationTrigger === 'focus') {
-			this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
+			this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
 		}
 	}
 
@@ -179,7 +179,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.touched = true;
 
 		if (this.validationTrigger === 'blur') {
-			this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
+			this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
 		}
 	}
 
@@ -203,7 +203,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.subscriber?.({ type: 'value', value: this.value });
 
 		if (this.validationTrigger === 'value') {
-			this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
+			this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
 		}
 	}
 
@@ -227,12 +227,12 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
-	public handleValidation(errors: Array<E>): void {
-		this.errors = errors;
+	public propagateErrors(errors: Array<E>): void {
+		this.errors = errors.filter(err => err.path === '.');
 
 		this.subscriber?.({ type: 'error', errors: this.errors });
 
-		distributeErrors(this.errors, this.nodes);
+		distributeErrors(errors, this.nodes);
 	}
 
 	public path(): string {
@@ -280,7 +280,9 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 				this.subscriber?.({ type: 'value', value: this.value });
 
 				if (this.validationTrigger === 'value') {
-					this.validateFn(this.value).then(this.handleError).catch(this.validateRejection);
+					this.validateFn(this.value)
+						.then(this.handleValidateFnError)
+						.catch(this.validateRejection);
 				}
 				break;
 			}
@@ -296,14 +298,13 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		}
 	}
 
-	private handleError = (errors: Array<E>): void => {
+	private handleValidateFnError = (errors: Array<E>): void => {
 		// no errors returned and no errors present (nothing changed)
-		if (errors.length === 0 && this.errors.length === 0) return;
+		if (errors.length === 0 && this.errors.length === 0) {
+			return;
+		}
 
-		this.errors = errors;
-		this.subscriber?.({ type: 'error', errors });
-
-		distributeErrors(this.errors, this.nodes);
+		this.propagateErrors(errors);
 	};
 
 	private value: T;

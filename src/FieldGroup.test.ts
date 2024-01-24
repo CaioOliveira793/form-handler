@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { FormApi } from '@/FormApi';
 import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
-import { TestAddress, TestFormData, delay } from '@/TestUtils';
+import { TestAddress, TestError, TestFormData } from '@/TestUtils';
 import { FieldGroup } from '@/FieldGroup';
 import { isDeepStrictEqual } from 'node:util';
 import { Field } from './Field';
@@ -394,39 +394,6 @@ describe('FieldGroup state management', () => {
 		]);
 	});
 
-	it('change the field state to invalid when an error is present in the field', async () => {
-		const history: Array<TestFormData> = [];
-		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			validationTrigger: 'value',
-			validate: async data => {
-				history.push(structuredClone(data));
-
-				if (!data.address) return [];
-				if (!data.address.street) return [];
-				return [{ message: 'Invalid street name', path: 'address.street' }];
-			},
-		});
-		const nameField = new Field({ parent: form, field: 'name' });
-		const addressField = new FieldGroup({
-			parent: form,
-			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
-		});
-
-		addressField.setValue({ state: 'valid', street: 'invalid' });
-
-		await delay(10);
-
-		assert.strictEqual(addressField.isValid(), false);
-		assert.deepStrictEqual(addressField.getErrors(), [
-			{ message: 'Invalid street name', path: 'address.street' },
-		]);
-
-		assert.strictEqual(nameField.isValid(), true);
-		assert.deepStrictEqual(nameField.getErrors(), []);
-	});
-
 	it('change the field state to modified after patching the value', () => {
 		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
 		const addressField = new FieldGroup({
@@ -505,4 +472,87 @@ describe('FieldGroup state management', () => {
 		assert.strictEqual(addressField.isTouched(), false);
 		assert.strictEqual(addressField.isActive(), false);
 	});
+});
+
+describe('FieldGroup error manipulation', () => {
+	it('replace the errors of a field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+
+		addressField.setErrors([
+			{ message: 'error#1', path: 'address' },
+			{ message: 'error#2', path: 'address' },
+		]);
+
+		assert.strictEqual(addressField.isValid(), false);
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ message: 'error#1', path: 'address' },
+			{ message: 'error#2', path: 'address' },
+		]);
+
+		assert.strictEqual(form.isFormValid(), false);
+
+		assert.strictEqual(nameField.isValid(), true);
+		assert.deepStrictEqual(nameField.getErrors(), []);
+
+		addressField.setErrors([{ message: 'error#0', path: 'address' }]);
+
+		assert.strictEqual(addressField.isValid(), false);
+		assert.deepStrictEqual(addressField.getErrors(), [{ message: 'error#0', path: 'address' }]);
+
+		assert.strictEqual(form.isFormValid(), false);
+	});
+
+	it('propagate errors from the field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+		const stateField = new Field({ parent: addressField, field: 'state' });
+
+		addressField.setErrors([
+			{ path: 'address', message: 'address invalid' },
+			{ path: 'address.street', message: 'street invalid' },
+			{ path: 'address.street', message: 'street invalid again' },
+			{ path: 'address.state', message: 'no state' },
+		]);
+
+		assert.strictEqual(form.isFormValid(), false);
+		assert.strictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+
+		assert.strictEqual(nameField.isValid(), true);
+		assert.deepStrictEqual(nameField.getErrors(), []);
+
+		assert.strictEqual(addressField.isValid(), false);
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ path: 'address', message: 'address invalid' },
+		]);
+
+		assert.strictEqual(streetField.isValid(), false);
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ path: 'address.street', message: 'street invalid' },
+			{ path: 'address.street', message: 'street invalid again' },
+		]);
+
+		assert.strictEqual(stateField.isValid(), false);
+		assert.deepStrictEqual(stateField.getErrors(), [
+			{ path: 'address.state', message: 'no state' },
+		]);
+	});
+
+	// TEST: run the validation to publish a bunch of errors and assert if all got distributed.
 });

@@ -79,22 +79,6 @@ export interface FieldNode<T, E extends NodeError> {
 	 */
 	setErrors(errors: Array<E>): void;
 	/**
-	 * Append new errors in this field.
-	 *
-	 * **triggers event**: 'error'
-	 *
-	 * @param errors new errors
-	 */
-	appendErrors(errors: Array<E>): void;
-	/**
-	 * Handle all errors for this node returned from the form validation.
-	 *
-	 * **triggers event**: 'error'
-	 *
-	 * @param errors error list produced from the validation
-	 */
-	handleValidation(errors: Array<E>): void;
-	/**
 	 * Field node path.
 	 *
 	 * @returns field path from the root form node to this node
@@ -176,7 +160,6 @@ export interface GroupNode<T, K extends NodeKey, V, E extends NodeError> extends
 	getNode(field: K): FieldNode<V, E> | null;
 
 	extractValue(field: K): Option<V>;
-
 	/**
 	 * Modifies the field in the node group.
 	 *

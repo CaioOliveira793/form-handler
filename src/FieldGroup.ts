@@ -26,6 +26,10 @@ export interface FieldGroupInput<
 	subscriber?: NodeSubscriber<T, E> | null;
 }
 
+// TODO: add GroupField methods to handle nested errors within the group.
+// - getGroupErrors()
+// - isGroupValid()
+
 export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends NodeError>
 	implements GroupNode<T, K, V, E>
 {
@@ -152,22 +156,9 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 	}
 
 	public setErrors(errors: Array<E>): void {
-		this.errors = errors;
-
-		this.subscriber?.({ type: 'error', errors: this.getErrors() });
-	}
-
-	public appendErrors(errors: Array<E>): void {
-		this.parent.appendErrors(errors);
-
-		this.subscriber?.({ type: 'error', errors: this.getErrors() });
-	}
-
-	public handleValidation(errors: Array<E>): void {
-		this.errors = errors;
+		this.errors = errors.filter(err => err.path === this.path());
 		this.subscriber?.({ type: 'error', errors: this.errors });
-
-		distributeErrors(this.errors, this.nodes, this.nodepath + '.');
+		distributeErrors(errors, this.nodes);
 	}
 
 	public path(): string {

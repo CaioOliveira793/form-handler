@@ -371,7 +371,7 @@ describe('Field state management', () => {
 });
 
 describe('Field error manipulation', () => {
-	it('append new errors in a field', () => {
+	it('set new errors in a field', () => {
 		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
 		});
@@ -383,7 +383,7 @@ describe('Field error manipulation', () => {
 		const streetField = new Field({ parent: addressField, field: 'street' });
 		const stateField = new Field({ parent: addressField, field: 'state' });
 
-		streetField.appendErrors([
+		streetField.setErrors([
 			{ message: 'Test error', path: 'address.street' },
 			{ message: 'Invalid street name', path: 'address.street' },
 		]);
@@ -398,17 +398,6 @@ describe('Field error manipulation', () => {
 
 		assert.strictEqual(stateField.isValid(), true);
 		assert.deepStrictEqual(stateField.getErrors(), []);
-
-		streetField.appendErrors([{ message: 'Another one', path: 'address.street' }]);
-
-		assert.strictEqual(form.isFormValid(), false);
-
-		assert.strictEqual(streetField.isValid(), false);
-		assert.deepStrictEqual(streetField.getErrors(), [
-			{ message: 'Test error', path: 'address.street' },
-			{ message: 'Invalid street name', path: 'address.street' },
-			{ message: 'Another one', path: 'address.street' },
-		]);
 	});
 
 	it('replace the errors of a field', () => {
@@ -681,50 +670,6 @@ describe('Field event subscription', () => {
 		assert.deepStrictEqual(history, [
 			{ type: 'error', errors: [{ path: 'address.street', message: '#1' }] },
 			{ type: 'error', errors: [{ path: 'address.street', message: 'none' }] },
-		]);
-	});
-
-	it('publish an error event after appending new errors in the field', () => {
-		const history: Array<NodeEvent<string | null, TestError>> = [];
-
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-		});
-		const addressField = new FieldGroup({
-			parent: form,
-			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
-		});
-		const streetField = new Field({
-			subscriber: makeSubscriber(history),
-			parent: addressField,
-			field: 'street',
-			initial: null,
-		});
-
-		assert.deepStrictEqual(history, []);
-
-		streetField.appendErrors([{ path: 'address.street', message: '#1' }]);
-
-		assert.deepStrictEqual(history, [
-			{ type: 'error', errors: [{ path: 'address.street', message: '#1' }] },
-		]);
-
-		streetField.appendErrors([
-			{ path: 'address.street', message: 'none' },
-			{ path: 'address.street', message: 'some' },
-		]);
-
-		assert.deepStrictEqual(history, [
-			{ type: 'error', errors: [{ path: 'address.street', message: '#1' }] },
-			{
-				type: 'error',
-				errors: [
-					{ path: 'address.street', message: '#1' },
-					{ path: 'address.street', message: 'none' },
-					{ path: 'address.street', message: 'some' },
-				],
-			},
 		]);
 	});
 

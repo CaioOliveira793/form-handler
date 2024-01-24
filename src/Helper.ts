@@ -18,11 +18,10 @@ export function defaultEqualFn<T = unknown>(a: T | undefined, b: T | undefined):
 
 export function distributeErrors<E extends NodeError, K extends NodeKey, T>(
 	errors: Array<E>,
-	nodes: Map<K, FieldNode<T, E>>,
-	fieldPrefix: string = ''
+	nodes: Map<K, FieldNode<T, E>>
 ) {
-	for (const [key, node] of nodes.entries()) {
-		const field = fieldPrefix + key.toString();
+	for (const node of nodes.values()) {
+		const field = node.path();
 		const fieldErrors = [];
 
 		for (const error of errors) {
@@ -31,6 +30,6 @@ export function distributeErrors<E extends NodeError, K extends NodeKey, T>(
 			}
 		}
 
-		node.handleValidation(fieldErrors);
+		node.setErrors(fieldErrors);
 	}
 }
