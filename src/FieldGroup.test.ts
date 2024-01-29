@@ -1,11 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import { isDeepStrictEqual } from 'node:util';
 import { FormApi } from '@/FormApi';
 import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
-import { TestAddress, TestError, TestFormData } from '@/TestUtils';
+import { TestAddress, TestError, TestFormData, delay } from '@/TestUtils';
 import { FieldGroup } from '@/FieldGroup';
-import { isDeepStrictEqual } from 'node:util';
-import { Field } from './Field';
+import { Field } from '@/Field';
 
 describe('FieldGroup state management', () => {
 	it('change state on focus event', () => {
@@ -554,5 +554,38 @@ describe('FieldGroup error manipulation', () => {
 		]);
 	});
 
-	// TEST: run the validation to publish a bunch of errors and assert if all got distributed.
+	it('handle and distribute errors from the validation function', async () => {
+		async function validationFn(data: TestFormData): Promise<Array<TestError>> {
+			const errors = [];
+			if (data.address) {
+				errors.push({ path: 'address', message: 'invalid address' });
+			}
+			if (data.address.state) {
+				errors.push({ path: 'address.state', message: 'invalid address state' });
+			}
+			return errors;
+		}
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validate: validationFn,
+			validationTrigger: 'value',
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const stateField = new Field({ parent: addressField, field: 'state' });
+
+		stateField.setValue('anything');
+
+		await delay(10);
+
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ path: 'address', message: 'invalid address' },
+		]);
+		assert.deepStrictEqual(stateField.getErrors(), [
+			{ path: 'address.state', message: 'invalid address state' },
+		]);
+	});
 });

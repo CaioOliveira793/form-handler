@@ -437,6 +437,28 @@ describe('Field error manipulation', () => {
 
 		assert.strictEqual(form.isFormValid(), false);
 	});
+
+	it('handle errors from the validation function', async () => {
+		async function validationFn(data: TestFormData): Promise<Array<TestError>> {
+			const errors = [];
+			if (data.name) {
+				errors.push({ path: 'name', message: 'invalid name' });
+			}
+			return errors;
+		}
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validate: validationFn,
+			validationTrigger: 'value',
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+
+		nameField.setValue('none');
+
+		await delay(10);
+
+		assert.deepStrictEqual(nameField.getErrors(), [{ path: 'name', message: 'invalid name' }]);
+	});
 });
 
 describe('Field value mutation', () => {
