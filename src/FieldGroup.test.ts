@@ -589,3 +589,134 @@ describe('FieldGroup error manipulation', () => {
 		]);
 	});
 });
+
+describe('FieldGroup value mutation', () => {
+	it('start the field with the initial value', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			initial: { state: 'Texas' } as TestAddress,
+		});
+		const state = new Field({ parent: addressField, field: 'state' });
+
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas' });
+		assert.deepStrictEqual(state.getValue(), 'Texas');
+	});
+
+	it('get the initial value from the field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			initial: { state: 'Texas' } as TestAddress,
+		});
+
+		assert.deepStrictEqual(addressField.getInitialValue(), { state: 'Texas' });
+	});
+
+	it('set the field value', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const state = new Field({ parent: addressField, field: 'state' });
+
+		addressField.setValue({ state: 'Texas' } as TestAddress);
+
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas' });
+		assert.deepStrictEqual(state.getValue(), 'Texas');
+	});
+
+	it('reset the field value to it initial state', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			initial: { state: 'Texas' } as TestAddress,
+		});
+		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		addressField.setValue({ state: 'Indiana', street: '334 Hickle Cliffs Suite 649' });
+
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas' });
+		assert.deepStrictEqual(stateField.getValue(), 'Texas');
+		assert.deepStrictEqual(streetField.getValue(), '334 Hickle Cliffs Suite 649');
+
+		addressField.reset();
+
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas' });
+		assert.deepStrictEqual(stateField.getValue(), 'Texas');
+		assert.deepStrictEqual(streetField.getValue(), undefined);
+	});
+
+	it('patch the field value in the group', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		{
+			const address = addressField.patchValue('state', 'Indiana');
+			assert.deepStrictEqual(address, { state: 'Indiana' });
+		}
+
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Indiana' });
+		assert.deepStrictEqual(stateField.getValue(), 'Indiana');
+		assert.deepStrictEqual(streetField.getValue(), undefined);
+
+		{
+			const address = addressField.patchValue('street', '15970 Spinka Island Suite 086');
+			assert.deepStrictEqual(address, {
+				state: 'Indiana',
+				street: '15970 Spinka Island Suite 086',
+			});
+		}
+
+		assert.deepStrictEqual(addressField.getValue(), {
+			state: 'Indiana',
+			street: '15970 Spinka Island Suite 086',
+		});
+		assert.deepStrictEqual(stateField.getValue(), 'Indiana');
+		assert.deepStrictEqual(streetField.getValue(), '15970 Spinka Island Suite 086');
+	});
+
+	it('extract the field value from the group', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const stateField = new Field({ parent: addressField, field: 'state' });
+
+		stateField.setValue('Montana');
+
+		const state = addressField.extractValue('state');
+
+		assert.strictEqual(state, 'Montana');
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Montana' });
+	});
+});

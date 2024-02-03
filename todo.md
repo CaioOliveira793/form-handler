@@ -15,11 +15,11 @@
     - [ ] list node
     - [ ] get node
   - value
-    - [ ] get/set value
-    - [ ] reset value
-    - [ ] patch value
-    - [ ] delete value
-    - [ ] extract value
+    - [x] initial value
+    - [x] get/set value
+    - [x] reset value
+    - [x] patch value
+    - [x] extract value
   - error manipulation
     - [x] set errors
     - [x] get errors
