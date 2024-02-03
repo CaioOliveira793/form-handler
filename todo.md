@@ -2,28 +2,6 @@
 
 ## Test
 
-- FieldNode
-  - path
-    - [x] field composition
-    - [x] path
-  - pub/sub
-    - [x] notification
-    - [x] subscription
-  - value
-    - [x] get/set value
-    - [x] reset value
-  - error
-    - [x] replace errors
-    - [x] append errors
-    - [x] get errors
-  - state change
-    - [x] focus
-    - [x] blur
-    - [x] valid
-    - [x] dirty
-    - [x] modified
-    - [x] touched
-
 - FieldGroupNode
   - path
     - [ ] field composition
@@ -43,11 +21,9 @@
     - [ ] delete value
     - [ ] extract value
   - error manipulation
-    - [ ] replace errors
-    - [ ] append errors
-    - [ ] get errors
-    - [ ] handleValidation
-    - [ ] hasNestedError
+    - [x] set errors
+    - [x] get errors
+    - [x] validation fn
   - state management
     - [x] focus within
     - [x] blur within
@@ -55,11 +31,6 @@
     - [x] dirty
     - [x] modified
     - [x] touched
-
-80.92 | 85.29 | 72.53
-80.12 | 85.29 | 70.97
-80.12 | 84.16 | 70.97
-
 
 - FormApi
   - submit
@@ -83,9 +54,11 @@
     - [ ] delete value
     - [ ] extract value
   - error
-    - [ ] validation
+    - [ ] validation fn
     - [ ] validation trigger
     - [ ] extract error
+    - [ ] set errors
+    - [ ] get errors
   - state change
     - [ ] focus within
     - [ ] blur within
