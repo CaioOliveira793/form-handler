@@ -13,12 +13,17 @@ import { EqualFn, defaultEqualFn, distributeErrors } from '@/Helper';
 /**
  * Form validation function
  */
-export type ValidateFormFn<T, E extends NodeError> = (data: T) => Promise<Array<E>>;
+export type ValidateFn<T, E extends NodeError> = (data: T) => Promise<Array<E>>;
 
 /**
  * Form validation rejection handler
  */
-export type ValidateFormRejectionHandler = (error: unknown) => void;
+export type ValidateRejectionHandler = (error: unknown) => void;
+
+/**
+ * Form submit rejection handler
+ */
+export type SubmitRejectionHandler = (error: unknown) => void;
 
 /**
  * Form submit function.
@@ -26,7 +31,7 @@ export type ValidateFormRejectionHandler = (error: unknown) => void;
  * @param data form data
  * @param formApi reference to a formApi instance
  */
-export type SubmitFormFn<T, K extends NodeKey, V, E extends NodeError> = (
+export type SubmitFn<T, K extends NodeKey, V, E extends NodeError> = (
 	data: T,
 	formApi: FormApi<T, K, V, E>
 ) => Promise<Array<E>> | Promise<void> | Array<E> | void;
@@ -35,6 +40,23 @@ export type SubmitFormFn<T, K extends NodeKey, V, E extends NodeError> = (
  * Form validation trigger event.
  */
 export type ValidationTrigger = 'focus' | 'blur' | 'value';
+
+/**
+ * Form submission state
+ *
+ * ### validation_error
+ *
+ * The form submission finished with an error from the validation function.
+ *
+ * ### submit_error
+ *
+ * The form submission finished with an error from the submit function.
+ *
+ * ### success
+ *
+ * The form submission finished successfully.
+ */
+export type SubmissionState = 'validation_error' | 'submit_error' | 'success';
 
 export interface FormApiInput<T, K extends NodeKey, V, E extends NodeError> {
 	composer: GroupComposer<T, K, V>;
@@ -45,9 +67,10 @@ export interface FormApiInput<T, K extends NodeKey, V, E extends NodeError> {
 	 * @default 'value'
 	 */
 	validationTrigger?: ValidationTrigger;
-	submit?: SubmitFormFn<T, K, V, E>;
-	validate?: ValidateFormFn<T, E>;
-	validateRejection?: ValidateFormRejectionHandler;
+	submit?: SubmitFn<T, K, V, E>;
+	validate?: ValidateFn<T, E>;
+	validateRejection?: ValidateRejectionHandler;
+	submitRejection?: SubmitRejectionHandler;
 	equalFn?: EqualFn<T>;
 	subscriber?: NodeSubscriber<T, E> | null;
 }
@@ -58,6 +81,10 @@ function noopFn() {
 
 function validateRejectionHandler(error: unknown) {
 	console.error('form validation rejected:', error);
+}
+
+function submitRejectionHandler(error: unknown) {
+	console.error('form submit rejected:', error);
 }
 
 async function validateFn() {
@@ -74,6 +101,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		submit = noopFn,
 		validate = validateFn,
 		validateRejection = validateRejectionHandler,
+		submitRejection = submitRejectionHandler,
 		equalFn = defaultEqualFn,
 		subscriber = null,
 	}: FormApiInput<T, K, V, E>) {
@@ -89,23 +117,39 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.submitFn = submit;
 		this.validateFn = validate;
 		this.validateRejection = validateRejection;
+		this.submitRejection = submitRejection;
 		this.equalFn = equalFn;
 		this.subscriber = subscriber;
 	}
 
-	public async submit(): Promise<void> {
-		this.errors = await this.validateFn(this.value);
-
-		if (this.errors.length !== 0) {
-			this.subscriber?.({ type: 'error', errors: this.errors });
-			return;
+	public async submitAsync(): Promise<SubmissionState> {
+		try {
+			const errors = await this.validateFn(this.value);
+			if (errors.length !== 0) {
+				this.setErrors(errors);
+				return 'validation_error';
+			}
+		} catch (err: unknown) {
+			this.validateRejection(err);
+			return 'validation_error';
 		}
 
-		const errors = await this.submitFn(this.value, this);
-		if (!errors || errors.length === 0) return;
+		try {
+			const errors = await this.submitFn(this.value, this);
+			if (errors && errors.length !== 0) {
+				this.setErrors(errors);
+				return 'submit_error';
+			}
+		} catch (err: unknown) {
+			this.submitRejection(err);
+			return 'submit_error';
+		}
 
-		this.errors = errors;
-		this.subscriber?.({ type: 'error', errors: this.errors });
+		return 'success';
+	}
+
+	public submit(): void {
+		this.submitAsync();
 	}
 
 	public attachNode(field: K, node: FieldNode<V, E>): string {
@@ -120,7 +164,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.subscriber?.({ type: 'value', value: this.value });
 
 		if (this.validationTrigger === 'value') {
-			this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
+			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
 		}
 
 		return path;
@@ -135,7 +179,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 			this.subscriber?.({ type: 'value', value: this.value });
 
 			if (this.validationTrigger === 'value') {
-				this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
+				this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
 			}
 		}
 
@@ -172,7 +216,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.touched = true;
 
 		if (this.validationTrigger === 'focus') {
-			this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
+			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
 		}
 	}
 
@@ -180,7 +224,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.touched = true;
 
 		if (this.validationTrigger === 'blur') {
-			this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
+			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
 		}
 	}
 
@@ -204,7 +248,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.subscriber?.({ type: 'value', value: this.value });
 
 		if (this.validationTrigger === 'value') {
-			this.validateFn(this.value).then(this.handleValidateFnError).catch(this.validateRejection);
+			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
 		}
 	}
 
@@ -274,9 +318,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 				this.subscriber?.({ type: 'value', value: this.value });
 
 				if (this.validationTrigger === 'value') {
-					this.validateFn(this.value)
-						.then(this.handleValidateFnError)
-						.catch(this.validateRejection);
+					this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
 				}
 				break;
 			}
@@ -292,7 +334,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		}
 	}
 
-	private handleValidateFnError = (errors: Array<E>): void => {
+	private handleValidateFn = (errors: Array<E>): void => {
 		// no errors returned and no errors present (nothing changed)
 		if (errors.length === 0 && this.errors.length === 0) {
 			return;
@@ -310,9 +352,10 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	private errors: Array<E>;
 	private readonly validationTrigger: ValidationTrigger;
 
-	private readonly submitFn: SubmitFormFn<T, K, V, E>;
-	private readonly validateFn: ValidateFormFn<T, E>;
-	private readonly validateRejection: ValidateFormRejectionHandler;
+	private readonly submitFn: SubmitFn<T, K, V, E>;
+	private readonly validateFn: ValidateFn<T, E>;
+	private readonly validateRejection: ValidateRejectionHandler;
+	private readonly submitRejection: SubmitRejectionHandler;
 	private readonly equalFn: EqualFn<T>;
 	private readonly subscriber: NodeSubscriber<T, E> | null;
 }

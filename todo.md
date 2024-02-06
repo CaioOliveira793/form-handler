@@ -42,24 +42,34 @@
 
 - FormApi
   - submit
-    - [ ] error verification
-    - [ ] submit error
+    - [x] validation error
+    - [x] submit error
+    - [x] submit success
+    - [x] background submit
   - path
     - [ ] field composition
     - [ ] path
-  - pub/sub
-    - [ ] notification
-    - [ ] subscription
+  - event subscription
+    - [ ] set value
+    - [ ] reset value
+    - [ ] attach node
+    - [ ] dettach node
+    - [ ] set value on parent
+    - [ ] set value on child
+    - [ ] set error
+    - [ ] set error on parent
   - node composition
     - [ ] attach node
     - [ ] detach node
-    - [ ] list node
     - [ ] get node
+    - [ ] iterate node
+    - [ ] iterate node field
+    - [ ] iterate node entries
   - value
+    - [ ] initial value
     - [ ] get/set value
     - [ ] reset value
     - [ ] patch value
-    - [ ] delete value
     - [ ] extract value
   - error
     - [ ] validation fn
@@ -67,7 +77,7 @@
     - [ ] extract error
     - [ ] set errors
     - [ ] get errors
-  - state change
+  - state management
     - [ ] focus within
     - [ ] blur within
     - [ ] valid
@@ -75,10 +85,18 @@
     - [ ] modified
     - [ ] touched
 
+## Error manipulation
+
+- [x] replate/set errors in the field and the child fields
+- [ ] append errors in the field and the child fields
+- [ ] clear errors in the field
+- [ ] return all errors in the form api
+- [ ] clear all errors in the form api
+
 ## Features
 
 - [ ] form validation
-- [ ] form submition
+- [x] form submission
 - [ ] clear form errors
 - [ ] field destroy on unregister
 - [ ] array node helper functions
