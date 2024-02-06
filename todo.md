@@ -6,9 +6,15 @@
   - path
     - [ ] field composition
     - [ ] path
-  - pub/sub
-    - [ ] notification
-    - [ ] subscription
+  - event subscription
+    - [x] set value
+    - [x] reset value
+    - [x] attach node
+    - [x] dettach node
+    - [x] set value on parent
+    - [x] set value on child
+    - [x] set error
+    - [x] set error on parent
   - node composition
     - [x] attach node
     - [x] detach node

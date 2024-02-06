@@ -3,10 +3,10 @@ import assert from 'node:assert';
 import { isDeepStrictEqual } from 'node:util';
 import { FormApi } from '@/FormApi';
 import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
-import { TestAddress, TestError, TestFormData, delay } from '@/TestUtils';
+import { TestAddress, TestError, TestFormData, delay, makeSubscriber } from '@/TestUtils';
 import { FieldGroup } from '@/FieldGroup';
 import { Field } from '@/Field';
-import { FieldNode, NodeError } from '@/NodeType';
+import { FieldNode, NodeError, NodeEvent } from '@/NodeType';
 
 describe('FieldGroup state management', () => {
 	it('change state on focus event', () => {
@@ -850,5 +850,238 @@ describe('FieldGroup node composition', () => {
 		}
 
 		assert.strictEqual(count, 2);
+	});
+});
+
+describe('FieldGroup event subscription', () => {
+	it('publish a value event when setting a new value in the field group', () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestFormData, keyof TestFormData, TestAddress, TestError>,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+		const stateField = new Field({
+			parent: addressField,
+			field: 'state',
+		});
+
+		assert.deepStrictEqual(history, [{ type: 'value', value: { state: undefined } }]);
+
+		addressField.setValue({ state: undefined, street: '1' } as unknown as TestAddress);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { state: undefined } },
+			{ type: 'value', value: { state: undefined, street: '1' } },
+		]);
+
+		stateField.setValue('Tx');
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { state: undefined } },
+			{ type: 'value', value: { state: undefined, street: '1' } },
+			{ type: 'value', value: { state: 'Tx', street: '1' } },
+		]);
+	});
+
+	it('publish a value event when resetting the field', () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestFormData, keyof TestFormData, TestAddress, TestError>,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+
+		addressField.setValue({ state: 'T', street: '1' } as unknown as TestAddress);
+
+		assert.deepStrictEqual(history, [{ type: 'value', value: { state: 'T', street: '1' } }]);
+
+		addressField.reset();
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { state: 'T', street: '1' } },
+			{ type: 'value', value: {} },
+		]);
+	});
+
+	it('publish a value event when setting the value in a node from the group', () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestFormData, keyof TestFormData, TestAddress, TestError>,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+		const stateField = new Field({
+			parent: addressField,
+			field: 'state',
+		});
+
+		assert.deepStrictEqual(history, [{ type: 'value', value: { state: undefined } }]);
+
+		stateField.setValue('TX');
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { state: undefined } },
+			{ type: 'value', value: { state: 'TX' } },
+		]);
+
+		stateField.setValue('NY');
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { state: undefined } },
+			{ type: 'value', value: { state: 'TX' } },
+			{ type: 'value', value: { state: 'NY' } },
+		]);
+	});
+
+	it('publish a value event when attaching a node in the group', () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestFormData, keyof TestFormData, TestAddress, TestError>,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		new Field({ parent: addressField, field: 'state' });
+
+		assert.deepStrictEqual(history, [{ type: 'value', value: { state: undefined } }]);
+	});
+
+	it('publish a value event when detaching a node from the group', () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestFormData, keyof TestFormData, TestAddress, TestError>,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+
+		const stateField = new Field({ parent: addressField, field: 'state' });
+		stateField.setValue('TX');
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { state: undefined } },
+			{ type: 'value', value: { state: 'TX' } },
+		]);
+
+		assert.strictEqual(addressField.detachNode('state'), true);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { state: undefined } },
+			{ type: 'value', value: { state: 'TX' } },
+			{ type: 'value', value: {} },
+		]);
+	});
+
+	it('publish a value event when setting a value in a parent field group', () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestFormData, keyof TestFormData, TestAddress, TestError>,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		form.setValue({ name: '', address: { state: 'NY' } } as TestFormData);
+
+		assert.deepStrictEqual(history, [{ type: 'value', value: { state: 'NY' } }]);
+
+		assert.deepStrictEqual(addressField.getValue(), { state: 'NY' });
+	});
+
+	it('publish an error event when setting an error in the field', () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestFormData, keyof TestFormData, TestAddress, TestError>,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+
+		addressField.setErrors([
+			{ path: 'address', message: 'address error' },
+			{ path: 'address.state', message: 'address state error' },
+		]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address', message: 'address error' }] },
+		]);
+
+		addressField.setErrors([]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address', message: 'address error' }] },
+			{ type: 'error', errors: [] },
+		]);
+	});
+
+	it('publish an error event when setting an error from the parent field', async () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestFormData, keyof TestFormData, TestAddress, TestError>,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+
+		form.setErrors([
+			{ path: 'name', message: 'name error' },
+			{ path: 'address', message: 'address error' },
+		]);
+
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address', message: 'address error' }] },
+		]);
+
+		addressField.setErrors([]);
+
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address', message: 'address error' }] },
+			{ type: 'error', errors: [] },
+		]);
 	});
 });

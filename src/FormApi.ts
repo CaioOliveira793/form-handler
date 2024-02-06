@@ -217,22 +217,8 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	}
 
 	public setErrors(errors: Array<E>): void {
-		this.errors = errors;
-
-		this.subscriber?.({ type: 'error', errors: this.errors });
-	}
-
-	public appendErrors(errors: Array<E>): void {
-		this.errors.push(...errors);
-
-		this.subscriber?.({ type: 'error', errors: this.errors });
-	}
-
-	public propagateErrors(errors: Array<E>): void {
 		this.errors = errors.filter(err => err.path === '.');
-
 		this.subscriber?.({ type: 'error', errors: this.errors });
-
 		distributeErrors(errors, this.nodes);
 	}
 
@@ -311,8 +297,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		if (errors.length === 0 && this.errors.length === 0) {
 			return;
 		}
-
-		this.propagateErrors(errors);
+		this.setErrors(errors);
 	};
 
 	private value: T;
