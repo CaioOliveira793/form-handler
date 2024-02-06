@@ -10,10 +10,12 @@
     - [ ] notification
     - [ ] subscription
   - node composition
-    - [ ] attach node
-    - [ ] detach node
-    - [ ] list node
-    - [ ] get node
+    - [x] attach node
+    - [x] detach node
+    - [x] get node
+    - [x] iterate node
+    - [x] iterate node field
+    - [x] iterate node entries
   - value
     - [x] initial value
     - [x] get/set value

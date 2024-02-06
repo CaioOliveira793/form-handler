@@ -142,12 +142,20 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		return deleted;
 	}
 
-	public listNode(): Array<[K, FieldNode<V, E>]> {
-		return Array.from(this.nodes.entries());
+	public getNode(field: K): Option<FieldNode<V, E>> {
+		return this.nodes.get(field);
 	}
 
-	public getNode(field: K): FieldNode<V, E> | null {
-		return this.nodes.get(field) ?? null;
+	public iterateNodes(): IterableIterator<FieldNode<V, E>> {
+		return this.nodes.values();
+	}
+
+	public iterateFields(): IterableIterator<K> {
+		return this.nodes.keys();
+	}
+
+	public iterateEntries(): IterableIterator<[K, FieldNode<V, E>]> {
+		return this.nodes.entries();
 	}
 
 	public extractValue(field: K): Option<V> {
@@ -158,13 +166,6 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.modified = true;
 		this.composer.patch(this.value, field, value);
 		return this.value;
-	}
-
-	public hasNestedError(): boolean {
-		for (const node of this.nodes.values()) {
-			if (node.isValid()) return true;
-		}
-		return false;
 	}
 
 	public handleFocusWithin(): void {
@@ -251,6 +252,13 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 
 	public isValid(): boolean {
 		return this.errors.length === 0;
+	}
+
+	public hasNestedError(): boolean {
+		for (const node of this.nodes.values()) {
+			if (node.isValid()) return true;
+		}
+		return false;
 	}
 
 	public isFormValid(): boolean {

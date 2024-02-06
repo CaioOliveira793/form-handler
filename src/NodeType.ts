@@ -156,9 +156,39 @@ export interface GroupNode<T, K extends NodeKey, V, E extends NodeError> extends
 	 * @returns true if the node was removed
 	 */
 	detachNode(field: K): boolean;
-	listNode(): Array<[K, FieldNode<V, E>]>;
-	getNode(field: K): FieldNode<V, E> | null;
+	/**
+	 * Returns a node in the group.
+	 *
+	 * @param field group field
+	 * @returns optional node
+	 */
+	getNode(field: K): Option<FieldNode<V, E>>;
 
+	/**
+	 * Returns a iterator of nodes attached in this group.
+	 *
+	 * @returns iterator of nodes
+	 */
+	iterateNodes(): IterableIterator<FieldNode<V, E>>;
+	/**
+	 * Returns a iterator of entries (fields and nodes) attached in this group.
+	 *
+	 * @returns iterator of field and node entries
+	 */
+	iterateEntries(): IterableIterator<[K, FieldNode<V, E>]>;
+	/**
+	 * Returns a iterator of fields of nodes attached in this group.
+	 *
+	 * @returns iterator of fields
+	 */
+	iterateFields(): IterableIterator<K>;
+
+	/**
+	 * Returns a field in the group.
+	 *
+	 * @param field group field
+	 * @returns optional field value
+	 */
 	extractValue(field: K): Option<V>;
 	/**
 	 * Modifies the field in the node group.
@@ -168,6 +198,7 @@ export interface GroupNode<T, K extends NodeKey, V, E extends NodeError> extends
 	 * @returns node value
 	 */
 	patchValue(field: K, value: V): Option<T>;
+
 	/**
 	 * Field focus within event handler.
 	 *

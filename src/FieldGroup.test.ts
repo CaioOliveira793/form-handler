@@ -6,6 +6,7 @@ import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
 import { TestAddress, TestError, TestFormData, delay } from '@/TestUtils';
 import { FieldGroup } from '@/FieldGroup';
 import { Field } from '@/Field';
+import { FieldNode, NodeError } from '@/NodeType';
 
 describe('FieldGroup state management', () => {
 	it('change state on focus event', () => {
@@ -591,7 +592,7 @@ describe('FieldGroup error manipulation', () => {
 });
 
 describe('FieldGroup value mutation', () => {
-	it('start the field with the initial value', () => {
+	it('start the field with the initial value from the group', () => {
 		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
 		});
@@ -601,10 +602,32 @@ describe('FieldGroup value mutation', () => {
 			field: 'address',
 			initial: { state: 'Texas' } as TestAddress,
 		});
+
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas' });
+
 		const state = new Field({ parent: addressField, field: 'state' });
 
 		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas' });
 		assert.deepStrictEqual(state.getValue(), 'Texas');
+	});
+
+	it('start the field with the initial value from the attached field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+			initial: { state: 'Texas' } as TestAddress,
+		});
+
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas' });
+
+		const state = new Field({ parent: addressField, field: 'state', initial: 'Indiana' });
+
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Indiana' });
+		assert.deepStrictEqual(state.getValue(), 'Indiana');
 	});
 
 	it('get the initial value from the field', () => {
@@ -653,13 +676,16 @@ describe('FieldGroup value mutation', () => {
 
 		addressField.setValue({ state: 'Indiana', street: '334 Hickle Cliffs Suite 649' });
 
-		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas' });
-		assert.deepStrictEqual(stateField.getValue(), 'Texas');
+		assert.deepStrictEqual(addressField.getValue(), {
+			state: 'Indiana',
+			street: '334 Hickle Cliffs Suite 649',
+		});
+		assert.deepStrictEqual(stateField.getValue(), 'Indiana');
 		assert.deepStrictEqual(streetField.getValue(), '334 Hickle Cliffs Suite 649');
 
 		addressField.reset();
 
-		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas' });
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Texas', street: undefined });
 		assert.deepStrictEqual(stateField.getValue(), 'Texas');
 		assert.deepStrictEqual(streetField.getValue(), undefined);
 	});
@@ -678,10 +704,10 @@ describe('FieldGroup value mutation', () => {
 
 		{
 			const address = addressField.patchValue('state', 'Indiana');
-			assert.deepStrictEqual(address, { state: 'Indiana' });
+			assert.deepStrictEqual(address, { state: 'Indiana', street: undefined });
 		}
 
-		assert.deepStrictEqual(addressField.getValue(), { state: 'Indiana' });
+		assert.deepStrictEqual(addressField.getValue(), { state: 'Indiana', street: undefined });
 		assert.deepStrictEqual(stateField.getValue(), 'Indiana');
 		assert.deepStrictEqual(streetField.getValue(), undefined);
 
@@ -718,5 +744,111 @@ describe('FieldGroup value mutation', () => {
 
 		assert.strictEqual(state, 'Montana');
 		assert.deepStrictEqual(addressField.getValue(), { state: 'Montana' });
+	});
+});
+
+describe('FieldGroup node composition', () => {
+	it('attach a node into the group on the node creation', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const stateField = new Field({ field: 'state', parent: addressField });
+
+		const stateNode = addressField.getNode('state');
+		assert.equal(stateNode, stateField);
+
+		const streetNode = addressField.getNode('street');
+		assert.equal(streetNode, undefined);
+	});
+
+	it('detach a node from the group', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		new Field({ field: 'state', parent: addressField });
+
+		{
+			const detached = addressField.detachNode('state');
+			assert.strictEqual(detached, true);
+		}
+		{
+			const detached = addressField.detachNode('street');
+			assert.strictEqual(detached, false);
+		}
+		{
+			const detached = addressField.detachNode('state');
+			assert.strictEqual(detached, false);
+		}
+	});
+
+	it('iterate all the nodes attached in the group', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const stateField = new Field({ field: 'state', parent: addressField });
+		const streetField = new Field({ field: 'street', parent: addressField });
+
+		const fields: Array<FieldNode<string, NodeError>> = [stateField, streetField];
+
+		let count = 0;
+		for (const node of addressField.iterateNodes()) {
+			assert.strictEqual(fields.includes(node), true);
+			count += 1;
+		}
+
+		assert.strictEqual(count, 2);
+	});
+
+	it('iterate all the fields from nodes attached in the group', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		new Field({ field: 'state', parent: addressField });
+		new Field({ field: 'street', parent: addressField });
+
+		const fields: Array<string> = ['state', 'street'];
+
+		let count = 0;
+		for (const field of addressField.iterateFields()) {
+			assert.strictEqual(fields.includes(field), true);
+			count += 1;
+		}
+
+		assert.strictEqual(count, 2);
+	});
+
+	it('iterate all the field and node entries attached in the group', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const stateField = new Field({ field: 'state', parent: addressField });
+		const streetField = new Field({ field: 'street', parent: addressField });
+
+		const fields: Array<string> = ['state', 'street'];
+		const nodes: Array<FieldNode<string, NodeError>> = [stateField, streetField];
+
+		let count = 0;
+		for (const [field, node] of addressField.iterateEntries()) {
+			assert.strictEqual(fields.includes(field), true);
+			assert.strictEqual(nodes.includes(node), true);
+			count += 1;
+		}
+
+		assert.strictEqual(count, 2);
 	});
 });
