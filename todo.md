@@ -2,6 +2,12 @@
 
 ## Test
 
+- FieldNode
+  - error manipulation
+    - [ ] get all form errors
+    - [ ] clear errors
+    - [ ] clear all form errors
+
 - FieldGroupNode
   - path
     - [ ] field composition
@@ -31,6 +37,9 @@
   - error manipulation
     - [x] set errors
     - [x] get errors
+    - [ ] get all form errors
+    - [ ] clear errors
+    - [ ] clear all form errors
     - [x] validation fn
   - state management
     - [x] focus within
@@ -75,8 +84,11 @@
     - [ ] validation fn
     - [ ] validation trigger
     - [ ] extract error
-    - [ ] set errors
-    - [ ] get errors
+    - [x] set errors
+    - [x] get errors
+    - [x] get all form errors
+    - [x] clear errors
+    - [x] clear all form errors
   - state management
     - [ ] focus within
     - [ ] blur within
@@ -88,16 +100,16 @@
 ## Error manipulation
 
 - [x] replate/set errors in the field and the child fields
+- [x] return all errors in the form api
 - [ ] append errors in the field and the child fields
-- [ ] clear errors in the field
-- [ ] return all errors in the form api
-- [ ] clear all errors in the form api
+- [x] clear errors in the field
+- [x] clear all errors in the form api
 
 ## Features
 
 - [ ] form validation
 - [x] form submission
-- [ ] clear form errors
+- [x] clear form errors
 - [ ] field destroy on unregister
 - [ ] array node helper functions
   - `swap|swapNode(indexA: number, indexB: number): void`

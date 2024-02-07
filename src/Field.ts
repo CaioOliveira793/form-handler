@@ -6,6 +6,7 @@ import {
 	NodeSubscriber,
 	Option,
 	NodeNotification,
+	NodeTarget,
 } from '@/NodeType';
 import { EqualFn, defaultEqualFn } from '@/Helper';
 
@@ -51,19 +52,26 @@ export class Field<F extends NodeKey, T, P, E extends NodeError> implements Fiel
 		this.parent.patchValue(this.field, value);
 
 		this.subscriber?.({ type: 'value', value });
-		this.parent.notify({ node: 'child' });
+		this.parent.notify({ type: 'child-node-updated' });
 	}
 
 	public reset(): void {
 		this.setValue(this.initial as T);
 	}
 
-	public getErrors(): Array<E> {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public getErrors(_: NodeTarget = 'current'): Array<E> {
 		return this.errors;
 	}
 
 	public setErrors(errors: Array<E>): void {
-		this.errors = errors;
+		this.errors = errors.filter(error => error.path === this.path());
+		this.subscriber?.({ type: 'error', errors: this.errors });
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public clearErrors(_: NodeTarget = 'current'): void {
+		this.errors = [];
 		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
@@ -105,12 +113,12 @@ export class Field<F extends NodeKey, T, P, E extends NodeError> implements Fiel
 		return this.touched;
 	}
 
-	public notify(notification: NodeNotification<T>): void {
-		switch (notification.node) {
-			case 'child':
+	public notify(notification: NodeNotification<T, E>): void {
+		switch (notification.type) {
+			case 'child-node-updated':
 				break;
 
-			case 'parent':
+			case 'parent-node-updated':
 				this.modified = true;
 				this.subscriber?.({ type: 'value', value: notification.value });
 				break;

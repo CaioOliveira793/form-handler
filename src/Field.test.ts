@@ -388,8 +388,6 @@ describe('Field error manipulation', () => {
 			{ message: 'Invalid street name', path: 'address.street' },
 		]);
 
-		assert.strictEqual(form.isFormValid(), false);
-
 		assert.strictEqual(streetField.isValid(), false);
 		assert.deepStrictEqual(streetField.getErrors(), [
 			{ message: 'Test error', path: 'address.street' },
@@ -423,8 +421,6 @@ describe('Field error manipulation', () => {
 			{ message: 'error#2', path: 'address.street' },
 		]);
 
-		assert.strictEqual(form.isFormValid(), false);
-
 		assert.strictEqual(stateField.isValid(), true);
 		assert.deepStrictEqual(stateField.getErrors(), []);
 
@@ -434,8 +430,6 @@ describe('Field error manipulation', () => {
 		assert.deepStrictEqual(streetField.getErrors(), [
 			{ message: 'error#0', path: 'address.street' },
 		]);
-
-		assert.strictEqual(form.isFormValid(), false);
 	});
 
 	it('handle errors from the validation function', async () => {
@@ -751,7 +745,7 @@ describe('Field event subscription', () => {
 
 		assert.deepStrictEqual(history, [{ type: 'value', value: 'change' }]);
 
-		streetField.notify({ node: 'parent', value: 'change again' });
+		streetField.notify({ type: 'parent-node-updated', value: 'change again' });
 
 		assert.deepStrictEqual(history, [
 			{ type: 'value', value: 'change' },
@@ -778,7 +772,7 @@ describe('Field event subscription', () => {
 
 		assert.deepStrictEqual(history, []);
 
-		streetField.notify({ node: 'child' });
+		streetField.notify({ type: 'child-node-updated' });
 
 		assert.deepStrictEqual(history, []);
 	});
@@ -801,7 +795,7 @@ describe('Field update notification', () => {
 
 		assert.strictEqual(streetField.isModified(), false);
 
-		streetField.notify({ node: 'parent', value: 'fake' });
+		streetField.notify({ type: 'parent-node-updated', value: 'fake' });
 
 		assert.strictEqual(streetField.isModified(), true);
 	});
@@ -827,7 +821,7 @@ describe('Field update notification', () => {
 		assert.deepStrictEqual(streetField.isValid(), true);
 		assert.deepStrictEqual(streetField.getErrors(), []);
 
-		streetField.notify({ node: 'child' });
+		streetField.notify({ type: 'child-node-updated' });
 
 		assert.deepStrictEqual(streetField.isTouched(), false);
 		assert.deepStrictEqual(streetField.isActive(), false);

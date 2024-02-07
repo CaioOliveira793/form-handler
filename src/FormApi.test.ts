@@ -345,3 +345,162 @@ describe('FormApi form submission', () => {
 		]);
 	});
 });
+
+describe('FormApi error manipulation', () => {
+	it('set the errors in the form root field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+
+		form.setErrors([
+			{ message: 'root form error', path: '.' },
+			{ message: 'name error', path: 'name' },
+		]);
+
+		assert.strictEqual(form.isValid(), false);
+		assert.deepStrictEqual(form.getErrors(), [{ message: 'root form error', path: '.' }]);
+
+		assert.strictEqual(addressField.isValid(), true);
+		assert.deepStrictEqual(addressField.getErrors(), []);
+
+		assert.strictEqual(nameField.isValid(), false);
+		assert.deepStrictEqual(nameField.getErrors(), [{ message: 'name error', path: 'name' }]);
+	});
+
+	it('propagate errors from the form root field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+		const stateField = new Field({ parent: addressField, field: 'state' });
+
+		form.setErrors([
+			{ path: '.', message: 'root form error' },
+			{ path: 'address', message: 'address error' },
+			{ path: 'address.street', message: 'street error 1' },
+			{ path: 'address.street', message: 'street error 2' },
+			{ path: 'address.state', message: 'state error' },
+		]);
+
+		assert.strictEqual(form.isValid(), false);
+		assert.deepStrictEqual(form.getErrors(), [{ path: '.', message: 'root form error' }]);
+
+		assert.strictEqual(nameField.isValid(), true);
+		assert.deepStrictEqual(nameField.getErrors(), []);
+
+		assert.strictEqual(addressField.isValid(), false);
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ path: 'address', message: 'address error' },
+		]);
+
+		assert.strictEqual(streetField.isValid(), false);
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ path: 'address.street', message: 'street error 1' },
+			{ path: 'address.street', message: 'street error 2' },
+		]);
+
+		assert.strictEqual(stateField.isValid(), false);
+		assert.deepStrictEqual(stateField.getErrors(), [
+			{ path: 'address.state', message: 'state error' },
+		]);
+	});
+
+	it('return all the errors in the form', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+		const stateField = new Field({ parent: addressField, field: 'state' });
+
+		form.setErrors([{ path: '.', message: 'root error' }]);
+		nameField.setErrors([{ path: 'name', message: 'name error' }]);
+		addressField.setErrors([{ path: 'address', message: 'address error' }]);
+		streetField.setErrors([{ path: 'address.street', message: 'address street error' }]);
+		stateField.setErrors([{ path: 'address.state', message: 'address state error' }]);
+
+		{
+			const errors = form.getErrors();
+			assert.deepStrictEqual(errors, [{ path: '.', message: 'root error' }]);
+		}
+
+		const errors = form.getErrors('group');
+		assert.deepStrictEqual(errors.length, 5);
+	});
+
+	it('clear all the errors in the form', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+		const stateField = new Field({ parent: addressField, field: 'state' });
+
+		form.setErrors([{ path: '.', message: 'root error' }]);
+		nameField.setErrors([{ path: 'name', message: 'name error' }]);
+		addressField.setErrors([{ path: 'address', message: 'address error' }]);
+		streetField.setErrors([{ path: 'address.street', message: 'address street error' }]);
+		stateField.setErrors([{ path: 'address.state', message: 'address state error' }]);
+
+		{
+			const errors = form.getErrors('group');
+			assert.deepStrictEqual(errors.length, 5);
+		}
+
+		form.clearErrors('group');
+
+		assert.deepStrictEqual(form.getErrors('group'), []);
+	});
+
+	it('clear all the errors in the form root field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+		const stateField = new Field({ parent: addressField, field: 'state' });
+
+		form.setErrors([{ path: '.', message: 'root error' }]);
+		nameField.setErrors([{ path: 'name', message: 'name error' }]);
+		addressField.setErrors([{ path: 'address', message: 'address error' }]);
+		streetField.setErrors([{ path: 'address.street', message: 'address street error' }]);
+		stateField.setErrors([{ path: 'address.state', message: 'address state error' }]);
+
+		{
+			assert.deepStrictEqual(form.getErrors('current').length, 1);
+			assert.deepStrictEqual(form.getErrors('group').length, 5);
+		}
+
+		form.clearErrors('current');
+
+		assert.deepStrictEqual(form.getErrors('current').length, 0);
+		assert.deepStrictEqual(form.getErrors('group').length, 4);
+	});
+});

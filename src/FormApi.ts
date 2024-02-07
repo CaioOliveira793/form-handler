@@ -7,6 +7,7 @@ import {
 	GroupNode,
 	Option,
 	NodeNotification,
+	NodeTarget,
 } from '@/NodeType';
 import { EqualFn, defaultEqualFn, distributeErrors } from '@/Helper';
 
@@ -242,7 +243,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 
 		for (const [field, node] of this.nodes.entries()) {
 			const data = this.composer.extract(this.value, field);
-			node.notify({ node: 'parent', value: data });
+			node.notify({ type: 'parent-node-updated', value: data });
 		}
 
 		this.subscriber?.({ type: 'value', value: this.value });
@@ -256,14 +257,38 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.setValue(this.initial);
 	}
 
-	public getErrors(): Array<E> {
-		return this.errors;
+	public getErrors(target: NodeTarget = 'current'): Array<E> {
+		if (target === 'current') {
+			return this.errors;
+		}
+
+		const errors: Array<E> = [];
+		for (const node of this.nodes.values()) {
+			errors.push(...node.getErrors('group'));
+		}
+		errors.push(...this.errors);
+
+		return errors;
 	}
 
 	public setErrors(errors: Array<E>): void {
 		this.errors = errors.filter(err => err.path === '.');
 		this.subscriber?.({ type: 'error', errors: this.errors });
 		distributeErrors(errors, this.nodes);
+	}
+
+	public clearErrors(target: NodeTarget = 'current'): void {
+		this.errors = [];
+		if (target === 'current') {
+			this.subscriber?.({ type: 'error', errors: this.errors });
+			return;
+		}
+
+		for (const node of this.nodes.values()) {
+			node.clearErrors('group');
+		}
+
+		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
 	public path(): string {
@@ -284,17 +309,6 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		return this.errors.length === 0;
 	}
 
-	public hasNestedError(): boolean {
-		for (const node of this.nodes.values()) {
-			if (node.isValid()) return true;
-		}
-		return false;
-	}
-
-	public isFormValid(): boolean {
-		return !this.hasNestedError();
-	}
-
 	public isDirty(): boolean {
 		return !this.equalFn(this.initial, this.value);
 	}
@@ -311,9 +325,9 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		return this.touched;
 	}
 
-	public notify(notification: NodeNotification<T>): void {
-		switch (notification.node) {
-			case 'child': {
+	public notify(notification: NodeNotification<T, E>): void {
+		switch (notification.type) {
+			case 'child-node-updated': {
 				this.modified = true;
 				this.subscriber?.({ type: 'value', value: this.value });
 
@@ -323,7 +337,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 				break;
 			}
 
-			case 'parent':
+			case 'parent-node-updated':
 				break;
 		}
 	}
@@ -350,6 +364,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	private active: boolean;
 	private modified: boolean;
 	private errors: Array<E>;
+	// private formErrors: Array<E>;
 	private readonly validationTrigger: ValidationTrigger;
 
 	private readonly submitFn: SubmitFn<T, K, V, E>;

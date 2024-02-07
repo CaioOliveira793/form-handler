@@ -498,8 +498,6 @@ describe('FieldGroup error manipulation', () => {
 			{ message: 'error#2', path: 'address' },
 		]);
 
-		assert.strictEqual(form.isFormValid(), false);
-
 		assert.strictEqual(nameField.isValid(), true);
 		assert.deepStrictEqual(nameField.getErrors(), []);
 
@@ -507,8 +505,6 @@ describe('FieldGroup error manipulation', () => {
 
 		assert.strictEqual(addressField.isValid(), false);
 		assert.deepStrictEqual(addressField.getErrors(), [{ message: 'error#0', path: 'address' }]);
-
-		assert.strictEqual(form.isFormValid(), false);
 	});
 
 	it('propagate errors from the field', () => {
@@ -531,7 +527,6 @@ describe('FieldGroup error manipulation', () => {
 			{ path: 'address.state', message: 'no state' },
 		]);
 
-		assert.strictEqual(form.isFormValid(), false);
 		assert.strictEqual(form.isValid(), true);
 		assert.deepStrictEqual(form.getErrors(), []);
 

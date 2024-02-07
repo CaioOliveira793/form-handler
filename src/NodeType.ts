@@ -7,18 +7,33 @@ export interface NodeError {
 	path: string;
 }
 
+/**
+ * Node target
+ *
+ * The target node that will be interacted.
+ */
+export type NodeTarget = 'current' | 'group';
+
 export type Option<T> = T | undefined;
 
 export interface ParentNodeUpdated<T> {
-	node: 'parent';
+	type: 'parent-node-updated';
 	value: Option<T>;
 }
 
 export interface ChildNodeUpdated {
-	node: 'child';
+	type: 'child-node-updated';
 }
 
-export type NodeNotification<T> = ParentNodeUpdated<T> | ChildNodeUpdated;
+export interface ChildNodeError<E extends NodeError> {
+	type: 'child-node-error';
+	errors: Array<E>;
+}
+
+export type NodeNotification<T, E extends NodeError> =
+	| ParentNodeUpdated<T>
+	| ChildNodeUpdated
+	| ChildNodeError<E>;
 
 export interface NodeValueEvent<T> {
 	type: 'value';
@@ -67,9 +82,10 @@ export interface FieldNode<T, E extends NodeError> {
 	/**
 	 * Return all the errors from this field
 	 *
+	 * @param {NodeTarget} [target='current'] - error extraction target
 	 * @returns list of errors
 	 */
-	getErrors(): Array<E>;
+	getErrors(target?: NodeTarget): Array<E>;
 	/**
 	 * Set the errors of this field.
 	 *
@@ -78,6 +94,12 @@ export interface FieldNode<T, E extends NodeError> {
 	 * @param errors new errors
 	 */
 	setErrors(errors: Array<E>): void;
+	/**
+	 * Clear all the errors in the node target.
+	 *
+	 * @param {NodeTarget} [target='current'] - target node
+	 */
+	clearErrors(target?: NodeTarget): void;
 	/**
 	 * Field node path.
 	 *
@@ -129,7 +151,7 @@ export interface FieldNode<T, E extends NodeError> {
 	 *
 	 * @param notification - node update notification
 	 */
-	notify(notification: NodeNotification<T>): void;
+	notify(notification: NodeNotification<T, E>): void;
 	/**
 	 * Destructs the node and detaches itself from the parent.
 	 */
