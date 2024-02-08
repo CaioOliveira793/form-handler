@@ -584,6 +584,123 @@ describe('FieldGroup error manipulation', () => {
 			{ path: 'address.state', message: 'invalid address state' },
 		]);
 	});
+
+	it('return all errors from the field group', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'value',
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		addressField.setErrors([
+			{ path: 'address', message: 'address message' },
+			{ path: 'address.state', message: 'address state message' },
+			{ path: 'address.street', message: 'address street message' },
+		]);
+
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ path: 'address', message: 'address message' },
+		]);
+		assert.deepStrictEqual(stateField.getErrors(), [
+			{ path: 'address.state', message: 'address state message' },
+		]);
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ path: 'address.street', message: 'address street message' },
+		]);
+
+		const errors = addressField.getErrors('group');
+		assert.deepStrictEqual(errors.length, 3);
+
+		for (const error of errors) {
+			assert.strictEqual(['address', 'address.state', 'address.street'].includes(error.path), true);
+		}
+	});
+
+	it('clear the errors in a field when targeting the "current" field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'value',
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		addressField.setErrors([
+			{ path: 'address', message: 'address message' },
+			{ path: 'address.state', message: 'address state message' },
+			{ path: 'address.street', message: 'address street message' },
+		]);
+
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ path: 'address', message: 'address message' },
+		]);
+		assert.deepStrictEqual(stateField.getErrors(), [
+			{ path: 'address.state', message: 'address state message' },
+		]);
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ path: 'address.street', message: 'address street message' },
+		]);
+
+		addressField.clearErrors();
+
+		assert.deepStrictEqual(addressField.getErrors(), []);
+
+		const errors = addressField.getErrors('group');
+
+		assert.strictEqual(errors.length, 2);
+
+		for (const error of errors) {
+			assert.strictEqual(['address.state', 'address.street'].includes(error.path), true);
+		}
+	});
+
+	it('clear all the errors in a field group when targeting the "group" nodes', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'value',
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		addressField.setErrors([
+			{ path: 'address', message: 'address message' },
+			{ path: 'address.state', message: 'address state message' },
+			{ path: 'address.street', message: 'address street message' },
+		]);
+
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ path: 'address', message: 'address message' },
+		]);
+		assert.deepStrictEqual(stateField.getErrors(), [
+			{ path: 'address.state', message: 'address state message' },
+		]);
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ path: 'address.street', message: 'address street message' },
+		]);
+
+		addressField.clearErrors('group');
+
+		assert.deepStrictEqual(addressField.getErrors(), []);
+		assert.deepStrictEqual(addressField.getErrors('group'), []);
+
+		assert.deepStrictEqual(stateField.getErrors(), []);
+		assert.deepStrictEqual(streetField.getErrors(), []);
+	});
 });
 
 describe('FieldGroup value mutation', () => {

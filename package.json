@@ -34,9 +34,9 @@
     "build:type": "dts-bundle-generator src/lib.ts --no-check --out-file 'dist/lib-type.d.ts'",
     "build:test": "rollup --config rollup/test.config.js",
     "build": "run-z clear:build build:js,build:type",
-    "pretest": "rollup --config rollup/test.config.js",
+    "pretest": "run-z clear:test build:test",
     "test": "node --test test-build",
-    "pretest:cov": "rollup --config rollup/test.config.js",
+    "pretest:cov": "run-z clear:test build:test",
     "test:cov": "node --experimental-test-coverage --test test-build",
     "clear:build": "rimraf dist",
     "clear:test": "rimraf test-build",
@@ -58,5 +58,5 @@
     "run-z": "^1.11.1",
     "typescript": "^5.2.2"
   },
-  "packageManager": "pnpm@8.0.0"
+  "packageManager": "pnpm@8.15.0"
 }

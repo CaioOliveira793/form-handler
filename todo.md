@@ -4,14 +4,11 @@
 
 - FieldNode
   - error manipulation
-    - [ ] get all form errors
-    - [ ] clear errors
-    - [ ] clear all form errors
+    - [x] get all form errors
+    - [x] clear errors
+    - [x] clear all form errors
 
 - FieldGroupNode
-  - path
-    - [ ] field composition
-    - [ ] path
   - event subscription
     - [x] set value
     - [x] reset value
@@ -37,9 +34,9 @@
   - error manipulation
     - [x] set errors
     - [x] get errors
-    - [ ] get all form errors
-    - [ ] clear errors
-    - [ ] clear all form errors
+    - [x] get all form errors
+    - [x] clear errors
+    - [x] clear all form errors
     - [x] validation fn
   - state management
     - [x] focus within
@@ -104,6 +101,10 @@
 - [ ] append errors in the field and the child fields
 - [x] clear errors in the field
 - [x] clear all errors in the form api
+
+## State management
+
+- [ ] add target node in `isValid` state fn
 
 ## Features
 

@@ -453,6 +453,60 @@ describe('Field error manipulation', () => {
 
 		assert.deepStrictEqual(nameField.getErrors(), [{ path: 'name', message: 'invalid name' }]);
 	});
+
+	it('return all errors from the field when targeting a "group"', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+
+		form.setErrors([{ path: '.', message: 'form error' }]);
+		nameField.setErrors([{ path: 'name', message: 'name error' }]);
+
+		assert.deepStrictEqual(nameField.getErrors(), [{ path: 'name', message: 'name error' }]);
+		assert.deepStrictEqual(nameField.getErrors('group'), [{ path: 'name', message: 'name error' }]);
+	});
+
+	it('clear errors from the field', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+
+		form.setErrors([
+			{ path: '.', message: 'form error' },
+			{ path: 'name', message: 'name error' },
+		]);
+
+		assert.deepStrictEqual(nameField.getErrors(), [{ path: 'name', message: 'name error' }]);
+
+		nameField.clearErrors();
+
+		assert.deepStrictEqual(nameField.getErrors(), []);
+		assert.deepStrictEqual(nameField.isValid(), true);
+	});
+
+	it('clear errors from the field when targeting a "group"', () => {
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+
+		form.setErrors([
+			{ path: '.', message: 'form error' },
+			{ path: 'name', message: 'name error' },
+		]);
+
+		assert.deepStrictEqual(nameField.getErrors(), [{ path: 'name', message: 'name error' }]);
+
+		nameField.clearErrors('group');
+
+		assert.deepStrictEqual(nameField.getErrors(), []);
+		assert.deepStrictEqual(nameField.isValid(), true);
+
+		assert.deepStrictEqual(form.getErrors(), [{ path: '.', message: 'form error' }]);
+		assert.deepStrictEqual(form.isValid(), false);
+	});
 });
 
 describe('Field value mutation', () => {
