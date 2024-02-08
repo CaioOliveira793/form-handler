@@ -117,9 +117,10 @@ export interface FieldNode<T, E extends NodeError> {
 	/**
 	 * Returns if the field does not have any error.
 	 *
+	 * @param {NodeTarget} [target='current'] - target node
 	 * @returns if the field does not have any error
 	 */
-	isValid(): boolean;
+	isValid(target?: NodeTarget): boolean;
 	/**
 	 * Returns if the field value is different from the initial.
 	 *

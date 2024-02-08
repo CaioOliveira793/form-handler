@@ -7,6 +7,105 @@ import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
 import { NodeError } from '@/NodeType';
 import { TestAddress, TestError, TestFormData, delay } from '@/TestUtils';
 
+describe('FormApi state management', () => {
+	it('change the form field to invalid when an error is prensent in the root field', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		assert.deepStrictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+
+		streetField.setErrors([
+			{ path: 'address.street', message: 'address street message' } as TestError,
+		]);
+
+		assert.deepStrictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+
+		form.setErrors([{ path: '.', message: 'root field message' } as TestError]);
+
+		assert.deepStrictEqual(form.isValid(), false);
+		assert.deepStrictEqual(form.getErrors(), [{ path: '.', message: 'root field message' }]);
+	});
+
+	it('change the form state to invalid when an error is prensent in any field of the form', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		assert.deepStrictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+
+		streetField.setErrors([
+			{ path: 'address.street', message: 'address street message' } as TestError,
+		]);
+
+		assert.deepStrictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+
+		assert.deepStrictEqual(form.isValid('group'), false);
+		assert.deepStrictEqual(form.getErrors('group'), [
+			{ path: 'address.street', message: 'address street message' },
+		]);
+
+		form.clearErrors('group');
+
+		assert.deepStrictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+
+		assert.deepStrictEqual(form.isValid('group'), true);
+		assert.deepStrictEqual(form.getErrors('group'), []);
+
+		nameField.setErrors([{ path: 'name', message: 'name message' } as TestError]);
+
+		assert.deepStrictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+
+		assert.deepStrictEqual(form.isValid('group'), false);
+		assert.deepStrictEqual(form.getErrors('group'), [{ path: 'name', message: 'name message' }]);
+	});
+
+	it('change the form to valid when the all errors are removed', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		nameField.setErrors([{ path: 'name', message: 'name message' } as TestError]);
+		streetField.setErrors([
+			{ path: 'address.street', message: 'address street message' } as TestError,
+		]);
+
+		assert.deepStrictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+
+		assert.deepStrictEqual(form.isValid('group'), false);
+		assert.deepStrictEqual(form.getErrors('group').length, 2);
+
+		form.clearErrors('group');
+
+		assert.deepStrictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+
+		assert.deepStrictEqual(form.isValid(), true);
+		assert.deepStrictEqual(form.getErrors(), []);
+	});
+});
+
 describe('FormApi form submission', () => {
 	it('submit the data in the form', async () => {
 		const history: Array<TestFormData> = [];

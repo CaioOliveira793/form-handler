@@ -473,6 +473,88 @@ describe('FieldGroup state management', () => {
 		assert.strictEqual(addressField.isTouched(), false);
 		assert.strictEqual(addressField.isActive(), false);
 	});
+
+	it('change the field state to invalid when an error is prensent in the current field', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		assert.deepStrictEqual(addressField.isValid(), true);
+		assert.deepStrictEqual(addressField.getErrors(), []);
+
+		streetField.setErrors([
+			{ path: 'address.street', message: 'address street message' } as TestError,
+		]);
+
+		assert.deepStrictEqual(addressField.isValid(), true);
+		assert.deepStrictEqual(addressField.getErrors(), []);
+
+		addressField.setErrors([{ path: 'address', message: 'address message' } as TestError]);
+
+		assert.deepStrictEqual(addressField.isValid(), false);
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ path: 'address', message: 'address message' },
+		]);
+	});
+
+	it('change the field group state to invalid when an error is prensent in the field group', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		assert.deepStrictEqual(addressField.isValid(), true);
+		assert.deepStrictEqual(addressField.getErrors(), []);
+
+		streetField.setErrors([
+			{ path: 'address.street', message: 'address street message' } as TestError,
+		]);
+
+		assert.deepStrictEqual(addressField.isValid(), true);
+		assert.deepStrictEqual(addressField.getErrors(), []);
+
+		assert.deepStrictEqual(addressField.isValid('group'), false);
+		assert.deepStrictEqual(addressField.getErrors('group'), [
+			{ path: 'address.street', message: 'address street message' },
+		]);
+	});
+
+	it('change the field state to valid when the errors are removed from the group', () => {
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		streetField.setErrors([
+			{ path: 'address.street', message: 'address street message' } as TestError,
+		]);
+
+		assert.deepStrictEqual(addressField.isValid(), true);
+		assert.deepStrictEqual(addressField.getErrors(), []);
+
+		assert.deepStrictEqual(addressField.isValid('group'), false);
+		assert.deepStrictEqual(addressField.getErrors('group'), [
+			{ path: 'address.street', message: 'address street message' },
+		]);
+
+		addressField.clearErrors('group');
+
+		assert.deepStrictEqual(addressField.isValid(), true);
+		assert.deepStrictEqual(addressField.getErrors(), []);
+
+		assert.deepStrictEqual(addressField.isValid(), true);
+		assert.deepStrictEqual(addressField.getErrors(), []);
+	});
 });
 
 describe('FieldGroup error manipulation', () => {

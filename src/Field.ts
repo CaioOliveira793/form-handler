@@ -93,7 +93,8 @@ export class Field<F extends NodeKey, T, P, E extends NodeError> implements Fiel
 		this.parent.handleBlurWithin();
 	}
 
-	public isValid(): boolean {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public isValid(_: NodeTarget = 'current'): boolean {
 		return this.errors.length === 0;
 	}
 

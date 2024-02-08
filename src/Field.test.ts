@@ -336,13 +336,10 @@ describe('Field state management', () => {
 	});
 
 	it('change the field state to invalid when an error is present in the field', async () => {
-		const history: Array<TestFormData> = [];
 		const form = new FormApi({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
 			validationTrigger: 'value',
 			validate: async data => {
-				history.push(structuredClone(data));
-
 				if (!data.address) return [];
 				if (!data.address.street) return [];
 				return [{ message: 'Invalid street name', path: 'address.street' }];
@@ -360,13 +357,43 @@ describe('Field state management', () => {
 
 		await delay(10);
 
-		assert.strictEqual(streetField.isValid(), false);
+		assert.strictEqual(streetField.isValid('current'), false);
+		assert.strictEqual(streetField.isValid('group'), false);
+
 		assert.deepStrictEqual(streetField.getErrors(), [
 			{ message: 'Invalid street name', path: 'address.street' },
 		]);
 
 		assert.strictEqual(stateField.isValid(), true);
 		assert.deepStrictEqual(stateField.getErrors(), []);
+	});
+
+	it('change the field state to valid when the errors are removed from the field', async () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		streetField.setErrors([
+			{ path: 'address.street', message: 'address street message' } as TestError,
+		]);
+
+		assert.strictEqual(streetField.isValid('current'), false);
+		assert.strictEqual(streetField.isValid('group'), false);
+
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ message: 'address street message', path: 'address.street' },
+		]);
+
+		streetField.clearErrors();
+
+		assert.strictEqual(streetField.isValid('current'), true);
+		assert.strictEqual(streetField.isValid('group'), true);
 	});
 });
 

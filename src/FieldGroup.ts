@@ -204,8 +204,18 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 		this.parent.handleBlurWithin();
 	}
 
-	public isValid(): boolean {
-		return this.errors.length === 0;
+	public isValid(target: NodeTarget = 'current'): boolean {
+		if (target === 'current') {
+			return this.errors.length === 0;
+		}
+
+		if (this.errors.length !== 0) return false;
+
+		for (const node of this.nodes.values()) {
+			if (!node.isValid('group')) return false;
+		}
+
+		return true;
 	}
 
 	public isDirty(): boolean {

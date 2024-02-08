@@ -2,12 +2,6 @@
 
 ## Test
 
-- FieldNode
-  - error manipulation
-    - [x] get all form errors
-    - [x] clear errors
-    - [x] clear all form errors
-
 - FieldGroupNode
   - event subscription
     - [x] set value
@@ -102,15 +96,10 @@
 - [x] clear errors in the field
 - [x] clear all errors in the form api
 
-## State management
-
-- [ ] add target node in `isValid` state fn
-
 ## Features
 
 - [ ] form validation
 - [x] form submission
-- [x] clear form errors
 - [ ] field destroy on unregister
 - [ ] array node helper functions
   - `swap|swapNode(indexA: number, indexB: number): void`
