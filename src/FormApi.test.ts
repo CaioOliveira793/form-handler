@@ -603,3 +603,298 @@ describe('FormApi error manipulation', () => {
 		assert.deepStrictEqual(form.getErrors('group').length, 4);
 	});
 });
+
+describe('FormApi data validation', () => {
+	it('execute the validation with a value trigger when a node is attached in the form', async () => {
+		const history: Array<TestFormData> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'value',
+			validate: async function (data: TestFormData): Promise<NodeError[]> {
+				history.push(structuredClone(data));
+				return [];
+			},
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		new Field({ parent: form, field: 'name' });
+		await delay(10);
+
+		assert.deepStrictEqual(history, [{ name: undefined }]);
+
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+		});
+		await delay(10);
+
+		assert.deepStrictEqual(history, [{ name: undefined }, { name: undefined, address: {} }]);
+
+		new Field({ parent: addressField, field: 'state', initial: null });
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ name: undefined },
+			{ name: undefined, address: {} },
+			{ name: undefined, address: { state: null } },
+		]);
+	});
+
+	it('execute the validation with a value trigger when a node is detached from the form', async () => {
+		const history: Array<TestFormData> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'value',
+			validate: async function (data: TestFormData): Promise<NodeError[]> {
+				history.push(structuredClone(data));
+				return [];
+			},
+		});
+
+		new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+		});
+		new Field({ parent: addressField, field: 'state', initial: null });
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ name: undefined },
+			{ name: undefined, address: {} },
+			{ name: undefined, address: { state: null } },
+		]);
+
+		assert.strictEqual(addressField.detachNode('state'), true);
+		await delay(10);
+		assert.deepStrictEqual(history, [
+			{ name: undefined },
+			{ name: undefined, address: {} },
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: {} },
+		]);
+
+		assert.strictEqual(form.detachNode('address'), true);
+		await delay(10);
+		assert.deepStrictEqual(history, [
+			{ name: undefined },
+			{ name: undefined, address: {} },
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: {} },
+			{ name: undefined },
+		]);
+
+		assert.strictEqual(form.detachNode('name'), true);
+		await delay(10);
+		assert.deepStrictEqual(history, [
+			{ name: undefined },
+			{ name: undefined, address: {} },
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: {} },
+			{ name: undefined },
+			{},
+		]);
+	});
+
+	it('execute the validation with a value trigger when a value is set', async () => {
+		const history: Array<TestFormData> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'value',
+			validate: async function (data: TestFormData): Promise<NodeError[]> {
+				history.push(structuredClone(data));
+				return [];
+			},
+		});
+
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+		});
+		const stateField = new Field({ parent: addressField, field: 'state', initial: null });
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ name: undefined },
+			{ name: undefined, address: {} },
+			{ name: undefined, address: { state: null } },
+		]);
+
+		stateField.setValue('TX');
+		await delay(10);
+		assert.deepStrictEqual(history, [
+			{ name: undefined },
+			{ name: undefined, address: {} },
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: { state: 'TX' } },
+		]);
+
+		addressField.setValue({ street: 'a', state: 'b' });
+		await delay(10);
+		assert.deepStrictEqual(history, [
+			{ name: undefined },
+			{ name: undefined, address: {} },
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: { state: 'TX' } },
+			{ name: undefined, address: { street: 'a', state: 'b' } },
+		]);
+
+		nameField.setValue('c');
+		await delay(10);
+		assert.deepStrictEqual(history, [
+			{ name: undefined },
+			{ name: undefined, address: {} },
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: { state: 'TX' } },
+			{ name: undefined, address: { street: 'a', state: 'b' } },
+			{ name: 'c', address: { street: 'a', state: 'b' } },
+		]);
+	});
+
+	it('execute the validation with a focus trigger when a field inside the form is focused', async () => {
+		const history: Array<TestFormData> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'focus',
+			validate: async function (data: TestFormData): Promise<NodeError[]> {
+				history.push(structuredClone(data));
+				return [];
+			},
+		});
+
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+		});
+		const stateField = new Field({ parent: addressField, field: 'state', initial: null });
+		await delay(10);
+
+		assert.deepStrictEqual(history, []);
+
+		stateField.handleFocus();
+		await delay(10);
+
+		assert.deepStrictEqual(history, [{ name: undefined, address: { state: null } }]);
+
+		stateField.handleBlur();
+		addressField.handleFocus();
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: { state: null } },
+		]);
+
+		addressField.handleBlur();
+		nameField.handleFocus();
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: { state: null } },
+		]);
+	});
+
+	it('execute the validation with a focus trigger when the form is focused', async () => {
+		const history: Array<TestFormData> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'focus',
+			validate: async function (data: TestFormData): Promise<NodeError[]> {
+				history.push(structuredClone(data));
+				return [];
+			},
+		});
+
+		form.setValue({ name: 's', address: {} } as TestFormData);
+		await delay(10);
+
+		assert.deepStrictEqual(history, []);
+
+		form.handleFocus();
+		await delay(10);
+
+		assert.deepStrictEqual(history, [{ name: 's', address: {} }]);
+	});
+
+	it('execute the validation with a focus blur when a field inside the form handled a blur event', async () => {
+		const history: Array<TestFormData> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'blur',
+			validate: async function (data: TestFormData): Promise<NodeError[]> {
+				history.push(structuredClone(data));
+				return [];
+			},
+		});
+
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+		});
+		const stateField = new Field({ parent: addressField, field: 'state', initial: null });
+
+		assert.deepStrictEqual(history, []);
+
+		stateField.handleBlur();
+		await delay(10);
+
+		assert.deepStrictEqual(history, [{ name: undefined, address: { state: null } }]);
+
+		addressField.handleBlur();
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: { state: null } },
+		]);
+
+		nameField.handleBlur();
+		await delay(10);
+
+		assert.deepStrictEqual(history, [
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: { state: null } },
+			{ name: undefined, address: { state: null } },
+		]);
+	});
+
+	it('execute the validation with a blur trigger when the form handle a blur event', async () => {
+		const history: Array<TestFormData> = [];
+
+		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			validationTrigger: 'blur',
+			validate: async function (data: TestFormData): Promise<NodeError[]> {
+				history.push(structuredClone(data));
+				return [];
+			},
+		});
+
+		form.setValue({ name: 'b', address: { state: 'state' } } as TestFormData);
+		await delay(10);
+
+		assert.deepStrictEqual(history, []);
+
+		form.handleBlur();
+		await delay(10);
+
+		assert.deepStrictEqual(history, [{ name: 'b', address: { state: 'state' } }]);
+	});
+});

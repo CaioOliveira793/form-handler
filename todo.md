@@ -41,11 +41,6 @@
     - [x] touched
 
 - FormApi
-  - submit
-    - [x] validation error
-    - [x] submit error
-    - [x] submit success
-    - [x] background submit
   - path
     - [ ] field composition
     - [ ] path
@@ -71,15 +66,6 @@
     - [ ] reset value
     - [ ] patch value
     - [ ] extract value
-  - error
-    - [ ] validation fn
-    - [ ] validation trigger
-    - [ ] extract error
-    - [x] set errors
-    - [x] get errors
-    - [x] get all form errors
-    - [x] clear errors
-    - [x] clear all form errors
   - state management
     - [ ] focus within
     - [ ] blur within
@@ -88,19 +74,12 @@
     - [ ] modified
     - [ ] touched
 
-## Error manipulation
-
-- [x] replate/set errors in the field and the child fields
-- [x] return all errors in the form api
-- [ ] append errors in the field and the child fields
-- [x] clear errors in the field
-- [x] clear all errors in the form api
-
 ## Features
 
 - [ ] form validation
-- [x] form submission
+- [ ] append errors in the field and the child fields
 - [ ] field destroy on unregister
+- [ ] validation debouncer
 - [ ] array node helper functions
   - `swap|swapNode(indexA: number, indexB: number): void`
   - `move|moveNode(indexA: number, indexB: number): void`

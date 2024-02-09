@@ -298,11 +298,19 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	public handleFocus(): void {
 		this.active = true;
 		this.touched = true;
+
+		if (this.validationTrigger === 'focus') {
+			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
+		}
 	}
 
 	public handleBlur(): void {
 		this.active = false;
 		this.touched = true;
+
+		if (this.validationTrigger === 'blur') {
+			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
+		}
 	}
 
 	public isValid(target: NodeTarget = 'current'): boolean {
