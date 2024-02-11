@@ -767,6 +767,12 @@ describe('FormApi error manipulation', () => {
 });
 
 describe('FormApi node composition', () => {
+	it('represent the form root path as a "."', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+
+		assert.strictEqual(form.path(), '.');
+	});
+
 	it('attach a node into the form when the node is created', () => {
 		const form = new FormApi({ composer: objectComposer<TestData>() });
 		const nameField = new Field({ parent: form, field: 'name' });
@@ -867,6 +873,27 @@ describe('FormApi node composition', () => {
 		}
 
 		assert.strictEqual(count, 2);
+	});
+
+	it('dispose all the child nodes when disposing the form', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+		const nameField = new Field({ parent: form, field: 'name' });
+		const emailField = new Field({ parent: form, field: 'email' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+		});
+
+		assert.equal(form.getNode('name'), nameField);
+		assert.equal(form.getNode('email'), emailField);
+		assert.equal(form.getNode('address'), addressField);
+
+		form.dispose();
+
+		assert.strictEqual(form.getNode('name'), undefined);
+		assert.strictEqual(form.getNode('email'), undefined);
+		assert.strictEqual(form.getNode('address'), undefined);
 	});
 });
 

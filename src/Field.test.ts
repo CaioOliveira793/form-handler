@@ -340,9 +340,11 @@ describe('Field state management', () => {
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'value',
 			validate: async data => {
-				if (!data.address) return [];
-				if (!data.address.street) return [];
-				return [{ message: 'Invalid street name', path: 'address.street' }];
+				const errors = [];
+				if (data?.address?.street !== undefined) {
+					errors.push({ message: 'Invalid street name', path: 'address.street' });
+				}
+				return errors;
 			},
 		});
 		const addressField = new FieldGroup({
@@ -776,9 +778,11 @@ describe('Field event subscription', () => {
 		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validate: async (data: TestData) => {
-				if (!data?.address) return [];
-				if (!data.address.street) return [];
-				return [{ path: 'address.street', message: 'the field is invalid' }];
+				const errors = [];
+				if (data?.address?.street) {
+					errors.push({ path: 'address.street', message: 'the field is invalid' });
+				}
+				return errors;
 			},
 		});
 		const addressField = new FieldGroup({

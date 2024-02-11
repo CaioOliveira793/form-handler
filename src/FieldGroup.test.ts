@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { isDeepStrictEqual } from 'node:util';
 import { FormApi } from '@/FormApi';
-import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
+import { ObjectComposer, ObjectGroupComposer, objectComposer } from '@/GroupComposer';
 import { TestAddress, TestError, TestData, delay, makeSubscriber } from '@/TestUtils';
 import { FieldGroup } from '@/FieldGroup';
 import { Field } from '@/Field';
@@ -1024,10 +1024,10 @@ describe('FieldGroup node composition', () => {
 	});
 
 	it('iterate all the field and node entries attached in the group', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
+		const form = new FormApi({ composer: objectComposer<TestData>() });
 		const addressField = new FieldGroup({
 			parent: form,
-			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			composer: objectComposer<TestAddress>(),
 			field: 'address',
 		});
 		const stateField = new Field({ field: 'state', parent: addressField });
@@ -1044,6 +1044,42 @@ describe('FieldGroup node composition', () => {
 		}
 
 		assert.strictEqual(count, 2);
+	});
+
+	it('detach from the parent when disposing the field group', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+		});
+		new Field({ field: 'state', parent: addressField });
+		new Field({ field: 'street', parent: addressField });
+
+		assert.equal(form.getNode('address'), addressField);
+
+		addressField.dispose();
+
+		assert.strictEqual(form.getNode('address'), undefined);
+	});
+
+	it('dispose all the child nodes when disposing the field group', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+		});
+		const stateField = new Field({ field: 'state', parent: addressField });
+		const streetField = new Field({ field: 'street', parent: addressField });
+
+		assert.equal(addressField.getNode('state'), stateField);
+		assert.equal(addressField.getNode('street'), streetField);
+
+		addressField.dispose();
+
+		assert.strictEqual(addressField.getNode('state'), undefined);
+		assert.strictEqual(addressField.getNode('street'), undefined);
 	});
 });
 

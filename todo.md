@@ -2,32 +2,20 @@
 
 ## Test
 
-- FieldGroupNode
-  - event subscription
-    - [x] set value
-    - [x] reset value
-    - [x] attach node
-    - [x] dettach node
-    - [x] set value on parent
-    - [x] set value on child
-    - [x] set error
-    - [x] set error on parent
-
 - FormApi
   - event subscription
     - [ ] set value
     - [ ] reset value
     - [ ] attach node
     - [ ] dettach node
-    - [ ] set value on parent
     - [ ] set value on child
     - [ ] set error
-    - [ ] set error on parent
+    - [ ] set form error
+    - [ ] set form error on child
 
 ## Features
 
 - [ ] append errors in the field and the child fields
-- [ ] field destroy on unregister `dispose`
 - [ ] validation debouncer
 - [ ] array node helper functions
   - `swap|swapNode(indexA: number, indexB: number): void`
