@@ -7,7 +7,7 @@ export interface TestAddress {
 	street: string;
 }
 
-export interface TestFormData {
+export interface TestData {
 	name: string;
 	email: string;
 	address: TestAddress;

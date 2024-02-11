@@ -12,12 +12,6 @@
     - [x] set value on child
     - [x] set error
     - [x] set error on parent
-  - value
-    - [x] initial value
-    - [x] get/set value
-    - [x] reset value
-    - [x] patch value
-    - [x] extract value
 
 - FormApi
   - event subscription
@@ -29,17 +23,11 @@
     - [ ] set value on child
     - [ ] set error
     - [ ] set error on parent
-  - value
-    - [ ] initial value
-    - [ ] get/set value
-    - [ ] reset value
-    - [ ] patch value
-    - [ ] extract value
 
 ## Features
 
 - [ ] append errors in the field and the child fields
-- [ ] field destroy on unregister
+- [ ] field destroy on unregister `dispose`
 - [ ] validation debouncer
 - [ ] array node helper functions
   - `swap|swapNode(indexA: number, indexB: number): void`
@@ -49,7 +37,3 @@
   - `remove(index: number): void`
   - `insert(index: number, value: T): void`
   - `update(index: number, value: T): void`
-
-## react-hook-form
-
-- [useForm options](https://react-hook-form.com/docs/useform)

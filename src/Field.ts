@@ -56,7 +56,7 @@ export class Field<F extends NodeKey, T, P, E extends NodeError> implements Fiel
 	}
 
 	public reset(): void {
-		this.setValue(this.initial as T);
+		this.setValue(structuredClone(this.initial) as T);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars

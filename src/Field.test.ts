@@ -5,11 +5,11 @@ import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
 import { Field } from '@/Field';
 import { FieldGroup } from '@/FieldGroup';
 import { NodeEvent } from '@/NodeType';
-import { TestFormData, TestAddress, delay, TestError, makeSubscriber } from '@/TestUtils';
+import { TestData, TestAddress, delay, TestError, makeSubscriber } from '@/TestUtils';
 
 describe('Field state management', () => {
 	it('change state on focus event', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const field = new Field({ parent: form, field: 'name' });
 
 		assert.strictEqual(field.isTouched(), false);
@@ -22,7 +22,7 @@ describe('Field state management', () => {
 	});
 
 	it('change state on focus and blur event', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const field = new Field({ parent: form, field: 'name' });
 
 		field.handleFocus();
@@ -37,7 +37,7 @@ describe('Field state management', () => {
 	});
 
 	it('change parent state on field focus event', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -55,7 +55,7 @@ describe('Field state management', () => {
 	});
 
 	it('change parent state on field focus and blur event', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -81,9 +81,9 @@ describe('Field state management', () => {
 	});
 
 	it('execute form validation on field focus event', () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'focus',
 			validate: async data => {
 				history.push(structuredClone(data));
@@ -113,7 +113,7 @@ describe('Field state management', () => {
 	});
 
 	it('change state on blur event', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const field = new Field({ parent: form, field: 'name' });
 
 		assert.strictEqual(field.isTouched(), false);
@@ -126,7 +126,7 @@ describe('Field state management', () => {
 	});
 
 	it('change parent state on field blur event', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -144,9 +144,9 @@ describe('Field state management', () => {
 	});
 
 	it('execute form validation on field blur event', () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'blur',
 			validate: async data => {
 				history.push(structuredClone(data));
@@ -176,7 +176,7 @@ describe('Field state management', () => {
 	});
 
 	it('change modified state on field value mutation', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -192,7 +192,7 @@ describe('Field state management', () => {
 	});
 
 	it('keep state as modified after reseting the field value', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -214,7 +214,7 @@ describe('Field state management', () => {
 	});
 
 	it('change parent state after a field value mutation', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -234,7 +234,7 @@ describe('Field state management', () => {
 	});
 
 	it('change the field state to dirty after its value has been modified', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -252,7 +252,7 @@ describe('Field state management', () => {
 	});
 
 	it('change the field state to not dirty when its value is equal to the initial', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -277,7 +277,7 @@ describe('Field state management', () => {
 	});
 
 	it('change the field state to dirty after modifying the parent value', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -298,9 +298,9 @@ describe('Field state management', () => {
 	});
 
 	it('execute form validation on field change event', () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'value',
 			validate: async data => {
 				history.push(structuredClone(data));
@@ -337,7 +337,7 @@ describe('Field state management', () => {
 
 	it('change the field state to invalid when an error is present in the field', async () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'value',
 			validate: async data => {
 				if (!data.address) return [];
@@ -370,7 +370,7 @@ describe('Field state management', () => {
 
 	it('change the field state to valid when the errors are removed from the field', async () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -399,8 +399,8 @@ describe('Field state management', () => {
 
 describe('Field error manipulation', () => {
 	it('set new errors in a field', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -426,8 +426,8 @@ describe('Field error manipulation', () => {
 	});
 
 	it('replace the errors of a field', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -460,15 +460,15 @@ describe('Field error manipulation', () => {
 	});
 
 	it('handle errors from the validation function', async () => {
-		async function validationFn(data: TestFormData): Promise<Array<TestError>> {
+		async function validationFn(data: TestData): Promise<Array<TestError>> {
 			const errors = [];
 			if (data.name) {
 				errors.push({ path: 'name', message: 'invalid name' });
 			}
 			return errors;
 		}
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validate: validationFn,
 			validationTrigger: 'value',
 		});
@@ -482,8 +482,8 @@ describe('Field error manipulation', () => {
 	});
 
 	it('return all errors from the field when targeting a "group"', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 
@@ -495,8 +495,8 @@ describe('Field error manipulation', () => {
 	});
 
 	it('clear errors from the field', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 
@@ -514,8 +514,8 @@ describe('Field error manipulation', () => {
 	});
 
 	it('clear errors from the field when targeting a "group"', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 
@@ -538,8 +538,8 @@ describe('Field error manipulation', () => {
 
 describe('Field value mutation', () => {
 	it('start the field value to initial on attachment', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -559,8 +559,8 @@ describe('Field value mutation', () => {
 	});
 
 	it('set the field value mutating the parent node', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -585,8 +585,8 @@ describe('Field value mutation', () => {
 	});
 
 	it('reset the field value to initial', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -613,8 +613,8 @@ describe('Field value mutation', () => {
 
 describe('Field node composition', () => {
 	it('dispose a field detaching itself from the form', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -635,8 +635,8 @@ describe('Field node composition', () => {
 	});
 
 	it('have a path of fields form the root node', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -657,8 +657,8 @@ describe('Field event subscription', () => {
 	it('publish a value event after setting a new value in the field', () => {
 		const history: Array<NodeEvent<string | null, TestError>> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -702,8 +702,8 @@ describe('Field event subscription', () => {
 	it('publish a value event after resetting the field', () => {
 		const history: Array<NodeEvent<string | null, TestError>> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -739,8 +739,8 @@ describe('Field event subscription', () => {
 	it('publish an error event after setting an error in the field', () => {
 		const history: Array<NodeEvent<string | null, TestError>> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -773,9 +773,9 @@ describe('Field event subscription', () => {
 	it('publish an error event after executing the validation error handler', async () => {
 		const history: Array<NodeEvent<string | null, TestError>> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			validate: async (data: TestFormData) => {
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
+			validate: async (data: TestData) => {
 				if (!data?.address) return [];
 				if (!data.address.street) return [];
 				return [{ path: 'address.street', message: 'the field is invalid' }];
@@ -806,8 +806,8 @@ describe('Field event subscription', () => {
 	it('publish a value event after a parent node updated notification', () => {
 		const history: Array<NodeEvent<string | null, TestError>> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -837,8 +837,8 @@ describe('Field event subscription', () => {
 	it('not publish a value event after a child node updated notification', () => {
 		const history: Array<NodeEvent<string | null, TestError>> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -861,8 +861,8 @@ describe('Field event subscription', () => {
 
 describe('Field update notification', () => {
 	it('process a notification from a parent node setting the field as modified', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,
@@ -882,8 +882,8 @@ describe('Field update notification', () => {
 	});
 
 	it('ignore any notification from a child node', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const addressField = new FieldGroup({
 			parent: form,

@@ -6,12 +6,12 @@ import { Field } from '@/Field';
 import { FieldGroup } from '@/FieldGroup';
 import { ObjectComposer, ObjectGroupComposer, objectComposer } from '@/GroupComposer';
 import { FieldNode, NodeError } from '@/NodeType';
-import { TestAddress, TestError, TestFormData, delay } from '@/TestUtils';
+import { TestAddress, TestError, TestData, delay } from '@/TestUtils';
 
 describe('FormApi state management', () => {
 	it('change the form state to drity after the value is different than the initial', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			equalFn: isDeepStrictEqual,
 			initial: { name: 'Thomas', address: { state: 'SP' } },
 		});
@@ -42,7 +42,7 @@ describe('FormApi state management', () => {
 
 	it('change the form state to active when the form handle a focus event', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 
 		assert.strictEqual(form.isActive(), false);
@@ -54,7 +54,7 @@ describe('FormApi state management', () => {
 
 	it('change the form state to inactive when the form handle a blur event', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 
 		form.handleFocus();
@@ -72,7 +72,7 @@ describe('FormApi state management', () => {
 
 	it('change the form state to modified when attaching a node into the form', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 
 		assert.strictEqual(form.isModified(), false);
@@ -84,7 +84,7 @@ describe('FormApi state management', () => {
 
 	it('keep the form state as modified when attaching a node into the form with a falsy form value', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			initial: null,
 		});
 
@@ -97,7 +97,7 @@ describe('FormApi state management', () => {
 
 	it('change the form state to modified when detaching a node from the form', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 
 		assert.strictEqual(form.detachNode('name'), false);
@@ -107,7 +107,7 @@ describe('FormApi state management', () => {
 
 	it('change the form state to modified when patching the form value', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 
 		form.patchValue('name', 'test');
@@ -117,17 +117,17 @@ describe('FormApi state management', () => {
 
 	it('change the form state to modified when setting the form value', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 
-		form.setValue({ name: 'test' } as TestFormData);
+		form.setValue({ name: 'test' } as TestData);
 
 		assert.strictEqual(form.isModified(), true);
 	});
 
 	it('change the form state to modified when setting the value of a field', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 
@@ -138,7 +138,7 @@ describe('FormApi state management', () => {
 
 	it('change the form state to touched when a form focus event is handled', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 
 		assert.strictEqual(form.isTouched(), false);
@@ -150,7 +150,7 @@ describe('FormApi state management', () => {
 
 	it('change the form state to touched when a form blur event is handled', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 
 		assert.strictEqual(form.isTouched(), false);
@@ -162,7 +162,7 @@ describe('FormApi state management', () => {
 
 	it('change the form state to touched when a field inside the form handle a focus event', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 
@@ -175,7 +175,7 @@ describe('FormApi state management', () => {
 
 	it('change the form state to touched when a field inside the form handle a blur event', () => {
 		const form = new FormApi({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 
@@ -187,7 +187,7 @@ describe('FormApi state management', () => {
 	});
 
 	it('change the form field to invalid when an error is prensent in the root field', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
@@ -212,7 +212,7 @@ describe('FormApi state management', () => {
 	});
 
 	it('change the form state to invalid when an error is prensent in any field of the form', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
 			parent: form,
@@ -254,7 +254,7 @@ describe('FormApi state management', () => {
 	});
 
 	it('change the form to valid when the all errors are removed', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
+		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
 			parent: form,
@@ -286,11 +286,11 @@ describe('FormApi state management', () => {
 
 describe('FormApi form submission', () => {
 	it('submit the data in the form', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			submit: function (data: TestFormData) {
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
+			submit: function (data: TestData) {
 				history.push(structuredClone(data));
 			},
 		});
@@ -332,14 +332,14 @@ describe('FormApi form submission', () => {
 	});
 
 	it('throw a validation error when submitting the form', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			submit: async function (data: TestFormData) {
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
+			submit: async function (data: TestData) {
 				history.push(structuredClone(data));
 			},
-			validate: async function (data: TestFormData) {
+			validate: async function (data: TestData) {
 				const errors = [];
 
 				if (data?.address?.state !== undefined) {
@@ -418,11 +418,11 @@ describe('FormApi form submission', () => {
 	});
 
 	it('throw a submit error when submitting the form', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			submit: async function (data: TestFormData) {
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
+			submit: async function (data: TestData) {
 				const errors: Array<TestError> = [];
 
 				if (data?.address?.state !== undefined) {
@@ -476,11 +476,11 @@ describe('FormApi form submission', () => {
 	});
 
 	it('execute the asynchronous submit function in the background', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			submit: function (data: TestFormData) {
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
+			submit: function (data: TestData) {
 				history.push(structuredClone(data));
 			},
 		});
@@ -527,8 +527,8 @@ describe('FormApi form submission', () => {
 	it('catch an error thrown from the submit function', async () => {
 		const errorHistory: Array<unknown> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			submit: async function () {
 				throw 'should not happen in submit';
 			},
@@ -561,12 +561,12 @@ describe('FormApi form submission', () => {
 	it('catch an error thrown from the validation function', async () => {
 		const errorHistory: Array<unknown> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validateRejection: function (err: unknown) {
 				errorHistory.push(err);
 			},
-			validate: async function (data: TestFormData) {
+			validate: async function (data: TestData) {
 				const errors: Array<TestError> = [];
 
 				if (data?.address?.state !== undefined) {
@@ -609,8 +609,8 @@ describe('FormApi form submission', () => {
 
 describe('FormApi error manipulation', () => {
 	it('set the errors in the form root field', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
@@ -635,8 +635,8 @@ describe('FormApi error manipulation', () => {
 	});
 
 	it('propagate errors from the form root field', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
@@ -679,8 +679,8 @@ describe('FormApi error manipulation', () => {
 	});
 
 	it('return all the errors in the form', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
@@ -707,8 +707,8 @@ describe('FormApi error manipulation', () => {
 	});
 
 	it('clear all the errors in the form', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
@@ -736,8 +736,8 @@ describe('FormApi error manipulation', () => {
 	});
 
 	it('clear all the errors in the form root field', () => {
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
@@ -768,7 +768,7 @@ describe('FormApi error manipulation', () => {
 
 describe('FormApi node composition', () => {
 	it('attach a node into the form when the node is created', () => {
-		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		const form = new FormApi({ composer: objectComposer<TestData>() });
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
 			parent: form,
@@ -781,7 +781,7 @@ describe('FormApi node composition', () => {
 	});
 
 	it('detach a node from the form', () => {
-		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		const form = new FormApi({ composer: objectComposer<TestData>() });
 		new Field({ parent: form, field: 'name' });
 		new FieldGroup({
 			parent: form,
@@ -808,7 +808,7 @@ describe('FormApi node composition', () => {
 	});
 
 	it('iterate all nodes attached in the form', () => {
-		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		const form = new FormApi({ composer: objectComposer<TestData>() });
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
 			parent: form,
@@ -828,7 +828,7 @@ describe('FormApi node composition', () => {
 	});
 
 	it('iterate all fields from the nodes attached in the form', () => {
-		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		const form = new FormApi({ composer: objectComposer<TestData>() });
 		new Field({ parent: form, field: 'name' });
 		new FieldGroup({
 			parent: form,
@@ -836,7 +836,7 @@ describe('FormApi node composition', () => {
 			composer: objectComposer<TestAddress>(),
 		});
 
-		const fields: Array<keyof TestFormData> = ['name', 'address'];
+		const fields: Array<keyof TestData> = ['name', 'address'];
 
 		let count = 0;
 		for (const field of form.iterateFields()) {
@@ -848,7 +848,7 @@ describe('FormApi node composition', () => {
 	});
 
 	it('iterate all the field and node entries attached in the form', () => {
-		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		const form = new FormApi({ composer: objectComposer<TestData>() });
 		const nameField = new Field({ parent: form, field: 'name' });
 		const addressField = new FieldGroup({
 			parent: form,
@@ -856,7 +856,7 @@ describe('FormApi node composition', () => {
 			composer: objectComposer<TestAddress>(),
 		});
 
-		const fields: Array<keyof TestFormData> = ['name', 'address'];
+		const fields: Array<keyof TestData> = ['name', 'address'];
 		const nodes: Array<FieldNode<string | TestAddress, NodeError>> = [nameField, addressField];
 
 		let count = 0;
@@ -870,14 +870,100 @@ describe('FormApi node composition', () => {
 	});
 });
 
+describe('FormApi value mutation', () => {
+	it('start the form with the initial value', () => {
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			initial: { name: 'Test', email: 'test@email.com' } as TestData,
+		});
+
+		assert.deepStrictEqual(form.getInitialValue(), { name: 'Test', email: 'test@email.com' });
+		assert.deepStrictEqual(form.getValue(), { name: 'Test', email: 'test@email.com' });
+	});
+
+	it('start the form with the initial value from the field attached in the form', () => {
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			initial: { name: 'Test', email: 'test@email.com' } as TestData,
+		});
+
+		assert.deepStrictEqual(form.getValue(), { name: 'Test', email: 'test@email.com' });
+
+		const nameField = new Field({ parent: form, field: 'name', initial: 'John' });
+
+		assert.deepStrictEqual(nameField.getValue(), 'John');
+		assert.deepStrictEqual(form.getValue(), { name: 'John', email: 'test@email.com' });
+	});
+
+	it('reset the form to its initial value', () => {
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			initial: { name: 'Test', email: 'test@email.com' } as TestData,
+		});
+
+		assert.deepStrictEqual(form.getInitialValue(), { name: 'Test', email: 'test@email.com' });
+
+		form.setValue({ name: 'John', email: 'john@email.com', address: {} } as TestData);
+
+		assert.deepStrictEqual(form.getValue(), { name: 'John', email: 'john@email.com', address: {} });
+
+		form.reset();
+
+		assert.deepStrictEqual(form.getValue(), { name: 'Test', email: 'test@email.com' });
+	});
+
+	it('set a form value', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: objectComposer<TestAddress>(),
+		});
+
+		form.setValue({ name: 'Test', address: { state: 'TX' } } as TestData);
+
+		assert.deepStrictEqual(form.getValue(), { name: 'Test', address: { state: 'TX' } });
+		assert.deepStrictEqual(nameField.getValue(), 'Test');
+		assert.deepStrictEqual(addressField.getValue(), { state: 'TX' });
+	});
+
+	it('patch the form value', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: objectComposer<TestAddress>(),
+		});
+
+		form.patchValue('name', 'Test');
+		form.patchValue('address', { state: 'TX' } as TestAddress);
+
+		assert.deepStrictEqual(form.getValue(), { name: 'Test', address: { state: 'TX' } });
+		assert.deepStrictEqual(nameField.getValue(), 'Test');
+		assert.deepStrictEqual(addressField.getValue(), { state: 'TX' });
+	});
+
+	it('extract the form value', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+
+		form.setValue({ name: 'Test', address: { state: 'TX' } } as TestData);
+
+		assert.deepStrictEqual(form.extractValue('name'), 'Test');
+		assert.deepStrictEqual(form.extractValue('email'), undefined);
+		assert.deepStrictEqual(form.extractValue('address'), { state: 'TX' });
+	});
+});
+
 describe('FormApi data validation', () => {
 	it('execute the validation with a value trigger when a node is attached in the form', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'value',
-			validate: async function (data: TestFormData): Promise<NodeError[]> {
+			validate: async function (data: TestData): Promise<NodeError[]> {
 				history.push(structuredClone(data));
 				return [];
 			},
@@ -910,12 +996,12 @@ describe('FormApi data validation', () => {
 	});
 
 	it('execute the validation with a value trigger when a node is detached from the form', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'value',
-			validate: async function (data: TestFormData): Promise<NodeError[]> {
+			validate: async function (data: TestData): Promise<NodeError[]> {
 				history.push(structuredClone(data));
 				return [];
 			},
@@ -968,12 +1054,12 @@ describe('FormApi data validation', () => {
 	});
 
 	it('execute the validation with a value trigger when a value is set', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'value',
-			validate: async function (data: TestFormData): Promise<NodeError[]> {
+			validate: async function (data: TestData): Promise<NodeError[]> {
 				history.push(structuredClone(data));
 				return [];
 			},
@@ -1026,12 +1112,12 @@ describe('FormApi data validation', () => {
 	});
 
 	it('execute the validation with a focus trigger when a field inside the form is focused', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'focus',
-			validate: async function (data: TestFormData): Promise<NodeError[]> {
+			validate: async function (data: TestData): Promise<NodeError[]> {
 				history.push(structuredClone(data));
 				return [];
 			},
@@ -1074,18 +1160,18 @@ describe('FormApi data validation', () => {
 	});
 
 	it('execute the validation with a focus trigger when the form is focused', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'focus',
-			validate: async function (data: TestFormData): Promise<NodeError[]> {
+			validate: async function (data: TestData): Promise<NodeError[]> {
 				history.push(structuredClone(data));
 				return [];
 			},
 		});
 
-		form.setValue({ name: 's', address: {} } as TestFormData);
+		form.setValue({ name: 's', address: {} } as TestData);
 		await delay(10);
 
 		assert.deepStrictEqual(history, []);
@@ -1096,13 +1182,13 @@ describe('FormApi data validation', () => {
 		assert.deepStrictEqual(history, [{ name: 's', address: {} }]);
 	});
 
-	it('execute the validation with a focus blur when a field inside the form handled a blur event', async () => {
-		const history: Array<TestFormData> = [];
+	it('execute the validation with a blur trigger when a field inside the form handled a blur event', async () => {
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'blur',
-			validate: async function (data: TestFormData): Promise<NodeError[]> {
+			validate: async function (data: TestData): Promise<NodeError[]> {
 				history.push(structuredClone(data));
 				return [];
 			},
@@ -1142,18 +1228,18 @@ describe('FormApi data validation', () => {
 	});
 
 	it('execute the validation with a blur trigger when the form handle a blur event', async () => {
-		const history: Array<TestFormData> = [];
+		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
+			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 			validationTrigger: 'blur',
-			validate: async function (data: TestFormData): Promise<NodeError[]> {
+			validate: async function (data: TestData): Promise<NodeError[]> {
 				history.push(structuredClone(data));
 				return [];
 			},
 		});
 
-		form.setValue({ name: 'b', address: { state: 'state' } } as TestFormData);
+		form.setValue({ name: 'b', address: { state: 'state' } } as TestData);
 		await delay(10);
 
 		assert.deepStrictEqual(history, []);
