@@ -4,8 +4,8 @@ import { isDeepStrictEqual } from 'node:util';
 import { FormApi } from '@/FormApi';
 import { Field } from '@/Field';
 import { FieldGroup } from '@/FieldGroup';
-import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
-import { NodeError } from '@/NodeType';
+import { ObjectComposer, ObjectGroupComposer, objectComposer } from '@/GroupComposer';
+import { FieldNode, NodeError } from '@/NodeType';
 import { TestAddress, TestError, TestFormData, delay } from '@/TestUtils';
 
 describe('FormApi state management', () => {
@@ -763,6 +763,110 @@ describe('FormApi error manipulation', () => {
 
 		assert.deepStrictEqual(form.getErrors('current').length, 0);
 		assert.deepStrictEqual(form.getErrors('group').length, 4);
+	});
+});
+
+describe('FormApi node composition', () => {
+	it('attach a node into the form when the node is created', () => {
+		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: objectComposer<TestAddress>(),
+		});
+
+		assert.equal(form.getNode('name'), nameField);
+		assert.equal(form.getNode('address'), addressField);
+	});
+
+	it('detach a node from the form', () => {
+		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		new Field({ parent: form, field: 'name' });
+		new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: objectComposer<TestAddress>(),
+		});
+
+		{
+			const detached = form.detachNode('name');
+			assert.strictEqual(detached, true);
+		}
+		{
+			const detached = form.detachNode('address');
+			assert.strictEqual(detached, true);
+		}
+		{
+			const detached = form.detachNode('name');
+			assert.strictEqual(detached, false);
+		}
+		{
+			const detached = form.detachNode('address');
+			assert.strictEqual(detached, false);
+		}
+	});
+
+	it('iterate all nodes attached in the form', () => {
+		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: objectComposer<TestAddress>(),
+		});
+
+		const fields: Array<FieldNode<string | TestAddress, NodeError>> = [nameField, addressField];
+
+		let count = 0;
+		for (const node of form.iterateNodes()) {
+			assert.strictEqual(fields.includes(node), true);
+			count += 1;
+		}
+
+		assert.strictEqual(count, 2);
+	});
+
+	it('iterate all fields from the nodes attached in the form', () => {
+		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		new Field({ parent: form, field: 'name' });
+		new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: objectComposer<TestAddress>(),
+		});
+
+		const fields: Array<keyof TestFormData> = ['name', 'address'];
+
+		let count = 0;
+		for (const field of form.iterateFields()) {
+			assert.strictEqual(fields.includes(field), true);
+			count += 1;
+		}
+
+		assert.strictEqual(count, 2);
+	});
+
+	it('iterate all the field and node entries attached in the form', () => {
+		const form = new FormApi({ composer: objectComposer<TestFormData>() });
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			field: 'address',
+			composer: objectComposer<TestAddress>(),
+		});
+
+		const fields: Array<keyof TestFormData> = ['name', 'address'];
+		const nodes: Array<FieldNode<string | TestAddress, NodeError>> = [nameField, addressField];
+
+		let count = 0;
+		for (const [field, node] of form.iterateEntries()) {
+			assert.strictEqual(fields.includes(field), true);
+			assert.strictEqual(nodes.includes(node), true);
+			count += 1;
+		}
+
+		assert.strictEqual(count, 2);
 	});
 });
 

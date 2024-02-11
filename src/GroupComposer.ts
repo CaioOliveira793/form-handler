@@ -17,6 +17,10 @@ export const ArrayGroupComposer = Object.freeze({
 	},
 }) as Readonly<ArrayComposer<unknown>>;
 
+export function arrayComposer<T>(): ArrayComposer<T> {
+	return ArrayGroupComposer as ArrayComposer<T>;
+}
+
 export type ObjectComposer<O extends object> = keyof O extends NodeKey
 	? GroupComposer<O, keyof O, O[keyof O]>
 	: GroupComposer<O, Extract<keyof O, NodeKey>, O[keyof O]>;
@@ -35,3 +39,7 @@ export const ObjectGroupComposer = Object.freeze({
 		return group[key];
 	},
 }) as ObjectComposer<object>;
+
+export function objectComposer<Obj extends object>(): ObjectComposer<Obj> {
+	return ObjectGroupComposer as unknown as ObjectComposer<Obj>;
+}
