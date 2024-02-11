@@ -25,25 +25,8 @@
     - [x] reset value
     - [x] patch value
     - [x] extract value
-  - error manipulation
-    - [x] set errors
-    - [x] get errors
-    - [x] get all form errors
-    - [x] clear errors
-    - [x] clear all form errors
-    - [x] validation fn
-  - state management
-    - [x] focus within
-    - [x] blur within
-    - [x] valid
-    - [x] dirty
-    - [x] modified
-    - [x] touched
 
 - FormApi
-  - path
-    - [ ] field composition
-    - [ ] path
   - event subscription
     - [ ] set value
     - [ ] reset value
@@ -66,17 +49,9 @@
     - [ ] reset value
     - [ ] patch value
     - [ ] extract value
-  - state management
-    - [ ] focus within
-    - [ ] blur within
-    - [ ] valid
-    - [ ] dirty
-    - [ ] modified
-    - [ ] touched
 
 ## Features
 
-- [ ] form validation
 - [ ] append errors in the field and the child fields
 - [ ] field destroy on unregister
 - [ ] validation debouncer

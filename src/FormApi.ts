@@ -106,7 +106,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		equalFn = defaultEqualFn,
 		subscriber = null,
 	}: FormApiInput<T, K, V, E>) {
-		this.value = initial;
+		this.value = structuredClone(initial);
 		this.errors = [];
 		this.nodes = new Map();
 		this.composer = composer;
@@ -157,11 +157,14 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.nodes.set(field, node);
 		const path = field.toString();
 
-		const value = node.getInitialValue();
 		if (!this.value) return path;
 
+		const initialForm = this.composer.extract(this.value, field);
+		const initialNode = node.getInitialValue();
+		const initial = initialNode === undefined ? initialForm : initialNode;
+
 		this.modified = true;
-		this.composer.patch(this.value, field, value as V);
+		this.composer.patch(this.value, field, initial as V);
 		this.subscriber?.({ type: 'value', value: this.value });
 
 		if (this.validationTrigger === 'value') {
@@ -254,7 +257,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	}
 
 	public reset(): void {
-		this.setValue(this.initial);
+		this.setValue(structuredClone(this.initial));
 	}
 
 	public getErrors(target: NodeTarget = 'current'): Array<E> {

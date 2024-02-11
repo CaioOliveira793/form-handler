@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import { isDeepStrictEqual } from 'node:util';
 import { FormApi } from '@/FormApi';
 import { Field } from '@/Field';
 import { FieldGroup } from '@/FieldGroup';
@@ -8,6 +9,183 @@ import { NodeError } from '@/NodeType';
 import { TestAddress, TestError, TestFormData, delay } from '@/TestUtils';
 
 describe('FormApi state management', () => {
+	it('change the form state to drity after the value is different than the initial', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			equalFn: isDeepStrictEqual,
+			initial: { name: 'Thomas', address: { state: 'SP' } },
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			field: 'address',
+		});
+
+		form.reset();
+
+		assert.strictEqual(form.isDirty(), false);
+
+		nameField.setValue('different');
+
+		assert.strictEqual(form.isDirty(), true);
+
+		form.reset();
+		addressField.setValue({ street: 'none' } as TestAddress);
+
+		assert.strictEqual(form.isDirty(), true);
+
+		form.reset();
+
+		assert.strictEqual(form.isDirty(), false);
+	});
+
+	it('change the form state to active when the form handle a focus event', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+
+		assert.strictEqual(form.isActive(), false);
+
+		form.handleFocus();
+
+		assert.strictEqual(form.isActive(), true);
+	});
+
+	it('change the form state to inactive when the form handle a blur event', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+
+		form.handleFocus();
+
+		assert.strictEqual(form.isActive(), true);
+
+		form.handleBlur();
+
+		assert.strictEqual(form.isActive(), false);
+
+		form.handleBlur();
+
+		assert.strictEqual(form.isActive(), false);
+	});
+
+	it('change the form state to modified when attaching a node into the form', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+
+		assert.strictEqual(form.isModified(), false);
+
+		new Field({ parent: form, field: 'name' });
+
+		assert.strictEqual(form.isModified(), true);
+	});
+
+	it('keep the form state as modified when attaching a node into the form with a falsy form value', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+			initial: null,
+		});
+
+		assert.strictEqual(form.isModified(), false);
+
+		new Field({ parent: form, field: 'name' });
+
+		assert.strictEqual(form.isModified(), false);
+	});
+
+	it('change the form state to modified when detaching a node from the form', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+
+		assert.strictEqual(form.detachNode('name'), false);
+
+		assert.strictEqual(form.isModified(), true);
+	});
+
+	it('change the form state to modified when patching the form value', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+
+		form.patchValue('name', 'test');
+
+		assert.strictEqual(form.isModified(), true);
+	});
+
+	it('change the form state to modified when setting the form value', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+
+		form.setValue({ name: 'test' } as TestFormData);
+
+		assert.strictEqual(form.isModified(), true);
+	});
+
+	it('change the form state to modified when setting the value of a field', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+
+		nameField.setValue('test');
+
+		assert.strictEqual(form.isModified(), true);
+	});
+
+	it('change the form state to touched when a form focus event is handled', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+
+		assert.strictEqual(form.isTouched(), false);
+
+		form.handleFocus();
+
+		assert.strictEqual(form.isTouched(), true);
+	});
+
+	it('change the form state to touched when a form blur event is handled', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+
+		assert.strictEqual(form.isTouched(), false);
+
+		form.handleBlur();
+
+		assert.strictEqual(form.isTouched(), true);
+	});
+
+	it('change the form state to touched when a field inside the form handle a focus event', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+
+		assert.strictEqual(form.isTouched(), false);
+
+		nameField.handleFocus();
+
+		assert.strictEqual(form.isTouched(), true);
+	});
+
+	it('change the form state to touched when a field inside the form handle a blur event', () => {
+		const form = new FormApi({
+			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
+		});
+		const nameField = new Field({ parent: form, field: 'name' });
+
+		assert.strictEqual(form.isTouched(), false);
+
+		nameField.handleBlur();
+
+		assert.strictEqual(form.isTouched(), true);
+	});
+
 	it('change the form field to invalid when an error is prensent in the root field', () => {
 		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestFormData> });
 		const addressField = new FieldGroup({
@@ -347,20 +525,12 @@ describe('FormApi form submission', () => {
 	});
 
 	it('catch an error thrown from the submit function', async () => {
-		const history: Array<TestFormData> = [];
 		const errorHistory: Array<unknown> = [];
 
 		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			submit: async function (data: TestFormData) {
-				const errors: Array<TestError> = [];
-
-				if (data?.address?.state !== undefined) {
-					throw 'should not happen in submit';
-				}
-
-				history.push(structuredClone(data));
-				return errors;
+			submit: async function () {
+				throw 'should not happen in submit';
 			},
 			submitRejection: function (err: unknown) {
 				errorHistory.push(err);
@@ -382,8 +552,6 @@ describe('FormApi form submission', () => {
 
 		await delay(10);
 
-		assert.deepStrictEqual(history, []);
-
 		const errors = stateField.getErrors();
 		assert.deepStrictEqual(errors, []);
 
@@ -391,14 +559,10 @@ describe('FormApi form submission', () => {
 	});
 
 	it('catch an error thrown from the validation function', async () => {
-		const history: Array<TestFormData> = [];
 		const errorHistory: Array<unknown> = [];
 
 		const form = new FormApi<TestFormData, keyof TestFormData, string | TestAddress, NodeError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestFormData>,
-			submit: async function (data: TestFormData) {
-				history.push(structuredClone(data));
-			},
 			validateRejection: function (err: unknown) {
 				errorHistory.push(err);
 			},
@@ -432,8 +596,6 @@ describe('FormApi form submission', () => {
 		form.submit();
 
 		await delay(10);
-
-		assert.deepStrictEqual(history, []);
 
 		const errors = stateField.getErrors();
 		assert.deepStrictEqual(errors, []);

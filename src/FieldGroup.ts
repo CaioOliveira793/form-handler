@@ -60,7 +60,7 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 		const group = this.parent.extractValue(this.field);
 		if (!group) return path;
 
-		const initialGroup = this.composer.extract(this.initial, field);
+		const initialGroup = this.composer.extract(group, field);
 		const initialNode = node.getInitialValue();
 		const initial = initialNode === undefined ? initialGroup : initialNode;
 
@@ -149,7 +149,7 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 	}
 
 	public reset(): void {
-		this.setValue(this.initial);
+		this.setValue(structuredClone(this.initial));
 	}
 
 	public getErrors(target: NodeTarget = 'current'): Array<E> {
