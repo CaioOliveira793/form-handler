@@ -234,7 +234,7 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 		return this.touched;
 	}
 
-	public notify(notification: NodeNotification<T, E>): void {
+	public notify(notification: NodeNotification<T>): void {
 		switch (notification.type) {
 			case 'child-node-updated':
 				this.modified = true;

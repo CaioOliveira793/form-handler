@@ -25,15 +25,7 @@ export interface ChildNodeUpdated {
 	type: 'child-node-updated';
 }
 
-export interface ChildNodeError<E extends NodeError> {
-	type: 'child-node-error';
-	errors: Array<E>;
-}
-
-export type NodeNotification<T, E extends NodeError> =
-	| ParentNodeUpdated<T>
-	| ChildNodeUpdated
-	| ChildNodeError<E>;
+export type NodeNotification<T> = ParentNodeUpdated<T> | ChildNodeUpdated;
 
 export interface NodeValueEvent<T> {
 	type: 'value';
@@ -152,7 +144,7 @@ export interface FieldNode<T, E extends NodeError> {
 	 *
 	 * @param notification - node update notification
 	 */
-	notify(notification: NodeNotification<T, E>): void;
+	notify(notification: NodeNotification<T>): void;
 	/**
 	 * Destructs the node and detaches itself from the parent.
 	 */

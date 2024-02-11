@@ -10,8 +10,6 @@
     - [ ] dettach node
     - [ ] set value on child
     - [ ] set error
-    - [ ] set form error
-    - [ ] set form error on child
 
 ## Features
 

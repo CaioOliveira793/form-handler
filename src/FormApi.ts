@@ -346,7 +346,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		return this.touched;
 	}
 
-	public notify(notification: NodeNotification<T, E>): void {
+	public notify(notification: NodeNotification<T>): void {
 		switch (notification.type) {
 			case 'child-node-updated': {
 				this.modified = true;

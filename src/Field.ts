@@ -114,7 +114,7 @@ export class Field<F extends NodeKey, T, P, E extends NodeError> implements Fiel
 		return this.touched;
 	}
 
-	public notify(notification: NodeNotification<T, E>): void {
+	public notify(notification: NodeNotification<T>): void {
 		switch (notification.type) {
 			case 'child-node-updated':
 				break;
