@@ -1,15 +1,9 @@
 # TODO
 
-## Test
-
-- FormApi
-  - event subscription
-    - [ ] set value
-    - [ ] reset value
-    - [ ] attach node
-    - [ ] dettach node
-    - [ ] set value on child
-    - [ ] set error
+- finish the error features
+- publish the next version (`v0.2.0`)
+- add a validation debouncer (example)
+- add array helper functions
 
 ## Features
 

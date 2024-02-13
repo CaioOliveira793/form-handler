@@ -5,8 +5,8 @@ import { FormApi } from '@/FormApi';
 import { Field } from '@/Field';
 import { FieldGroup } from '@/FieldGroup';
 import { ObjectComposer, ObjectGroupComposer, objectComposer } from '@/GroupComposer';
-import { FieldNode, NodeError } from '@/NodeType';
-import { TestAddress, TestError, TestData, delay } from '@/TestUtils';
+import { FieldNode, NodeError, NodeEvent } from '@/NodeType';
+import { TestAddress, TestError, TestData, delay, makeSubscriber } from '@/TestUtils';
 
 describe('FormApi state management', () => {
 	it('change the form state to drity after the value is different than the initial', () => {
@@ -1275,5 +1275,212 @@ describe('FormApi data validation', () => {
 		await delay(10);
 
 		assert.deepStrictEqual(history, [{ name: 'b', address: { state: 'state' } }]);
+	});
+});
+
+describe('FormApi event subscription', () => {
+	it('publish a value event when attaching a new node in the form', () => {
+		const history: Array<NodeEvent<TestData, TestError>> = [];
+
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			subscriber: makeSubscriber(history),
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+		});
+
+		assert.deepStrictEqual(history, [{ type: 'value', value: { address: {} } }]);
+
+		new Field({ parent: form, field: 'name' });
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { address: {} } },
+			{ type: 'value', value: { name: undefined, address: {} } },
+		]);
+
+		new Field({ parent: addressField, field: 'state', initial: null });
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { address: {} } },
+			{ type: 'value', value: { name: undefined, address: {} } },
+			{ type: 'value', value: { name: undefined, address: { state: null } } },
+		]);
+	});
+
+	it('publish a value event when detaching a node from the form', () => {
+		const history: Array<NodeEvent<TestData, TestError>> = [];
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			subscriber: makeSubscriber(history),
+		});
+
+		new Field({ parent: form, field: 'name' });
+		new FieldGroup({
+			parent: form,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+		});
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { name: undefined } },
+			{ type: 'value', value: { name: undefined, address: {} } },
+		]);
+
+		assert.deepStrictEqual(form.detachNode('name'), true);
+		assert.deepStrictEqual(form.detachNode('address'), true);
+	});
+
+	it('publish a value event when setting a value in the form', () => {
+		const history: Array<NodeEvent<TestData, TestError>> = [];
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			subscriber: makeSubscriber(history),
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		form.setValue({ name: 'Test' } as TestData);
+
+		assert.deepStrictEqual(history, [{ type: 'value', value: { name: 'Test' } }]);
+
+		form.setValue({ name: 'Other', email: 'other@email.com' } as TestData);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { name: 'Test' } },
+			{ type: 'value', value: { name: 'Other', email: 'other@email.com' } },
+		]);
+	});
+
+	it('publish a value event when resetting the form data', () => {
+		const history: Array<NodeEvent<TestData, TestError>> = [];
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			subscriber: makeSubscriber(history),
+			initial: { name: 'None', address: { state: 'undefined' } } as TestData,
+		});
+
+		assert.deepStrictEqual(history, []);
+
+		form.setValue({ name: 'Test', email: 'test@email.com' } as TestData);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { name: 'Test', email: 'test@email.com' } },
+		]);
+
+		form.reset();
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { name: 'Test', email: 'test@email.com' } },
+			{ type: 'value', value: { name: 'None', address: { state: 'undefined' } } },
+		]);
+	});
+
+	it('publish a value event when setting the value in a field inside the form', () => {
+		const history: Array<NodeEvent<TestData, TestError>> = [];
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			subscriber: makeSubscriber(history),
+		});
+
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+		});
+		const stateField = new Field({ parent: addressField, field: 'state' });
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { address: {} } },
+			{ type: 'value', value: { address: { state: undefined } } },
+		]);
+
+		addressField.setValue({ street: 'Unknown' } as TestAddress);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { address: {} } },
+			{ type: 'value', value: { address: { state: undefined } } },
+			{ type: 'value', value: { address: { street: 'Unknown' } } },
+		]);
+
+		stateField.setValue('NY');
+
+		assert.deepStrictEqual(history, [
+			{ type: 'value', value: { address: {} } },
+			{ type: 'value', value: { address: { state: undefined } } },
+			{ type: 'value', value: { address: { street: 'Unknown' } } },
+			{ type: 'value', value: { address: { state: 'NY', street: 'Unknown' } } },
+		]);
+	});
+
+	it('publish an error event when setting an error in the form', () => {
+		const history: Array<NodeEvent<TestData, TestError>> = [];
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			subscriber: makeSubscriber(history),
+		});
+
+		form.setErrors([{ path: '.', message: 'form error 1' }]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: '.', message: 'form error 1' }] },
+		]);
+
+		form.setErrors([
+			{ path: '.', message: 'error #1' },
+			{ path: '.', message: 'error #2' },
+		]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: '.', message: 'form error 1' }] },
+			{
+				type: 'error',
+				errors: [
+					{ path: '.', message: 'error #1' },
+					{ path: '.', message: 'error #2' },
+				],
+			},
+		]);
+	});
+
+	it('publish an error event when clearing the form errors', () => {
+		const history: Array<NodeEvent<TestData, TestError>> = [];
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
+			subscriber: makeSubscriber(history),
+		});
+
+		form.setErrors([
+			{ path: '.', message: 'error #1' },
+			{ path: '.', message: 'error #2' },
+		]);
+
+		assert.deepStrictEqual(history, [
+			{
+				type: 'error',
+				errors: [
+					{ path: '.', message: 'error #1' },
+					{ path: '.', message: 'error #2' },
+				],
+			},
+		]);
+
+		form.clearErrors();
+
+		assert.deepStrictEqual(history, [
+			{
+				type: 'error',
+				errors: [
+					{ path: '.', message: 'error #1' },
+					{ path: '.', message: 'error #2' },
+				],
+			},
+			{ type: 'error', errors: [] },
+		]);
 	});
 });
