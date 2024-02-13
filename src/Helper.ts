@@ -1,4 +1,17 @@
-import { NodeError, NodeKey, FieldNode } from '@/NodeType';
+import { NodeError, NodeKey, FieldNode, NodeNotification, Option } from '@/NodeType';
+
+/**
+ * Group node used internally by the field node.
+ */
+export interface InternalGroupNode<K extends NodeKey, V, E extends NodeError> {
+	attachNode(field: K, node: FieldNode<V, E>): string;
+	detachNode(field: K): boolean;
+	extractValue(field: K): Option<V>;
+	patchValue(field: K, value: V): Option<unknown>;
+	handleFocusWithin(): void;
+	handleBlurWithin(): void;
+	notify(notification: NodeNotification<unknown>): void;
+}
 
 /**
  * Equality comparison function.

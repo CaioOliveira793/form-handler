@@ -1041,8 +1041,8 @@ describe('FormApi data validation', () => {
 	it('execute the validation with a value trigger when a node is attached in the form', async () => {
 		const history: Array<TestData> = [];
 
-		const form = new FormApi<TestData, keyof TestData, string | TestAddress, NodeError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestData>,
+		const form = new FormApi({
+			composer: objectComposer<TestData>(),
 			validationTrigger: 'value',
 			validate: async function (data: TestData): Promise<NodeError[]> {
 				history.push(structuredClone(data));
@@ -1060,7 +1060,7 @@ describe('FormApi data validation', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			field: 'address',
-			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			composer: objectComposer<TestAddress>(),
 		});
 		await delay(10);
 
@@ -1358,7 +1358,11 @@ describe('FormApi event subscription', () => {
 			{ type: 'value', value: { name: undefined, address: {} } },
 		]);
 
-		new Field({ parent: addressField, field: 'state', initial: null });
+		new Field<'state', string | null, TestError>({
+			parent: addressField,
+			field: 'state',
+			initial: null,
+		});
 
 		assert.deepStrictEqual(history, [
 			{ type: 'value', value: { address: {} } },

@@ -2,30 +2,29 @@ import {
 	NodeError,
 	NodeKey,
 	FieldNode,
-	GroupNode,
 	NodeSubscriber,
 	Option,
 	NodeNotification,
 	NodeTarget,
 } from '@/NodeType';
-import { EqualFn, defaultEqualFn } from '@/Helper';
+import { InternalGroupNode, EqualFn, defaultEqualFn } from '@/Helper';
 
-export interface FieldInput<F extends NodeKey, T, P, E extends NodeError> {
+export interface FieldInput<F extends NodeKey, T, E extends NodeError> {
 	field: F;
-	parent: GroupNode<P, F, T, E>;
+	parent: InternalGroupNode<F, T, E>;
 	initial?: T;
 	equalFn?: EqualFn<T>;
 	subscriber?: NodeSubscriber<T, E> | null;
 }
 
-export class Field<F extends NodeKey, T, P, E extends NodeError> implements FieldNode<T, E> {
+export class Field<F extends NodeKey, T, E extends NodeError> implements FieldNode<T, E> {
 	public constructor({
 		field,
 		initial,
 		parent,
 		equalFn = defaultEqualFn,
 		subscriber = null,
-	}: FieldInput<F, T, P, E>) {
+	}: FieldInput<F, T, E>) {
 		this.field = field;
 		this.parent = parent;
 		this.initial = initial;
@@ -141,7 +140,7 @@ export class Field<F extends NodeKey, T, P, E extends NodeError> implements Fiel
 
 	private readonly nodepath: string;
 	private readonly field: F;
-	private readonly parent: GroupNode<P, F, T, E>;
+	private readonly parent: InternalGroupNode<F, T, E>;
 	private readonly initial: Option<T>;
 	private touched: boolean;
 	private active: boolean;

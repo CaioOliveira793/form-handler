@@ -9,25 +9,24 @@ import {
 	NodeNotification,
 	NodeTarget,
 } from '@/NodeType';
-import { EqualFn, defaultEqualFn, distributeAppendErrors, distributeReplaceErrors } from '@/Helper';
+import {
+	InternalGroupNode,
+	EqualFn,
+	defaultEqualFn,
+	distributeAppendErrors,
+	distributeReplaceErrors,
+} from '@/Helper';
 
-export interface FieldGroupInput<
-	F extends NodeKey,
-	T,
-	K extends NodeKey,
-	V,
-	P,
-	E extends NodeError,
-> {
+export interface FieldGroupInput<F extends NodeKey, T, K extends NodeKey, V, E extends NodeError> {
 	field: F;
-	parent: GroupNode<P, F, T, E>;
+	parent: InternalGroupNode<F, T, E>;
 	composer: GroupComposer<T, K, V>;
 	initial?: T;
 	equalFn?: EqualFn<T>;
 	subscriber?: NodeSubscriber<T, E> | null;
 }
 
-export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends NodeError>
+export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, E extends NodeError>
 	implements GroupNode<T, K, V, E>
 {
 	public constructor({
@@ -37,7 +36,7 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 		initial = composer.default(),
 		equalFn = defaultEqualFn,
 		subscriber = null,
-	}: FieldGroupInput<F, T, K, V, P, E>) {
+	}: FieldGroupInput<F, T, K, V, E>) {
 		this.field = field;
 		this.parent = parent;
 		this.nodes = new Map();
@@ -277,7 +276,7 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 
 	private readonly nodepath: string;
 	private readonly field: F;
-	private readonly parent: GroupNode<P, F, T, E>;
+	private readonly parent: InternalGroupNode<F, T, E>;
 	private readonly nodes: Map<K, FieldNode<V, E>>;
 	private readonly composer: GroupComposer<T, K, V>;
 	private readonly initial: T;

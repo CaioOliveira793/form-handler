@@ -1408,8 +1408,14 @@ describe('FieldGroup event subscription', () => {
 		const form = new FormApi<TestData, keyof TestData, ValueOf<TestData>, TestError>({
 			composer: objectComposer<TestData>(),
 		});
-		const addressField = new FieldGroup({
-			parent: form as FormApi<TestData, 'address', TestAddress, TestError>,
+		const addressField = new FieldGroup<
+			'address',
+			TestAddress,
+			keyof TestAddress,
+			ValueOf<TestAddress>,
+			TestError
+		>({
+			parent: form, // as FormApi<TestData, 'address', TestAddress, TestError>,
 			composer: objectComposer<TestAddress>(),
 			field: 'address',
 			subscriber: makeSubscriber(history),
