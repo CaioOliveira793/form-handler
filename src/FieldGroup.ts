@@ -9,7 +9,7 @@ import {
 	NodeNotification,
 	NodeTarget,
 } from '@/NodeType';
-import { EqualFn, defaultEqualFn, distributeErrors } from '@/Helper';
+import { EqualFn, defaultEqualFn, distributeAppendErrors, distributeReplaceErrors } from '@/Helper';
 
 export interface FieldGroupInput<
 	F extends NodeKey,
@@ -139,12 +139,13 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 		this.modified = true;
 		this.parent.patchValue(this.field, value);
 
+		this.subscriber?.({ type: 'value', value });
+
 		for (const [field, node] of this.nodes.entries()) {
 			const data = this.composer.extract(value, field);
 			node.notify({ type: 'parent-node-updated', value: data });
 		}
 
-		this.subscriber?.({ type: 'value', value });
 		this.parent.notify({ type: 'child-node-updated' });
 	}
 
@@ -169,21 +170,27 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, P, E extends
 	public setErrors(errors: Array<E>): void {
 		this.errors = errors.filter(err => err.path === this.path());
 		this.subscriber?.({ type: 'error', errors: this.errors });
-		distributeErrors(errors, this.nodes);
+		distributeReplaceErrors(errors, this.nodes);
+	}
+
+	public appendErrors(errors: E[]): void {
+		for (const error of errors) {
+			if (error.path === this.path()) {
+				this.errors.push(error);
+			}
+		}
+		this.subscriber?.({ type: 'error', errors: this.errors });
+		distributeAppendErrors(errors, this.nodes);
 	}
 
 	public clearErrors(target: NodeTarget = 'current'): void {
 		this.errors = [];
-		if (target === 'current') {
-			this.subscriber?.({ type: 'error', errors: this.errors });
-			return;
-		}
+		this.subscriber?.({ type: 'error', errors: this.errors });
 
+		if (target === 'current') return;
 		for (const node of this.nodes.values()) {
 			node.clearErrors('group');
 		}
-
-		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
 	public path(): string {

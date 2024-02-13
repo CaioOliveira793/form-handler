@@ -16,7 +16,7 @@ export function defaultEqualFn<T = unknown>(a: T | undefined, b: T | undefined):
 	return a === b;
 }
 
-export function distributeErrors<E extends NodeError, K extends NodeKey, T>(
+export function distributeReplaceErrors<E extends NodeError, K extends NodeKey, T>(
 	errors: Array<E>,
 	nodes: Map<K, FieldNode<T, E>>
 ) {
@@ -31,5 +31,23 @@ export function distributeErrors<E extends NodeError, K extends NodeKey, T>(
 		}
 
 		node.setErrors(fieldErrors);
+	}
+}
+
+export function distributeAppendErrors<E extends NodeError, K extends NodeKey, T>(
+	errors: Array<E>,
+	nodes: Map<K, FieldNode<T, E>>
+) {
+	for (const node of nodes.values()) {
+		const field = node.path();
+		const fieldErrors = [];
+
+		for (const error of errors) {
+			if (error.path.startsWith(field)) {
+				fieldErrors.push(error);
+			}
+		}
+
+		node.appendErrors(fieldErrors);
 	}
 }

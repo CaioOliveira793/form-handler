@@ -9,7 +9,7 @@ import {
 	NodeNotification,
 	NodeTarget,
 } from '@/NodeType';
-import { EqualFn, defaultEqualFn, distributeErrors } from '@/Helper';
+import { EqualFn, defaultEqualFn, distributeAppendErrors, distributeReplaceErrors } from '@/Helper';
 
 /**
  * Form validation function
@@ -92,6 +92,7 @@ async function validateFn() {
 	return [];
 }
 
+// TODO: add typescript variance anotation.
 export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	implements GroupNode<T, K, V, E>
 {
@@ -244,12 +245,12 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.modified = true;
 		this.value = value;
 
+		this.subscriber?.({ type: 'value', value: this.value });
+
 		for (const [field, node] of this.nodes.entries()) {
 			const data = this.composer.extract(this.value, field);
 			node.notify({ type: 'parent-node-updated', value: data });
 		}
-
-		this.subscriber?.({ type: 'value', value: this.value });
 
 		if (this.validationTrigger === 'value') {
 			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
@@ -277,21 +278,27 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	public setErrors(errors: Array<E>): void {
 		this.errors = errors.filter(err => err.path === '.');
 		this.subscriber?.({ type: 'error', errors: this.errors });
-		distributeErrors(errors, this.nodes);
+		distributeReplaceErrors(errors, this.nodes);
+	}
+
+	public appendErrors(errors: Array<E>): void {
+		for (const error of errors) {
+			if (error.path === this.path()) {
+				this.errors.push(error);
+			}
+		}
+		this.subscriber?.({ type: 'error', errors: this.errors });
+		distributeAppendErrors(errors, this.nodes);
 	}
 
 	public clearErrors(target: NodeTarget = 'current'): void {
 		this.errors = [];
-		if (target === 'current') {
-			this.subscriber?.({ type: 'error', errors: this.errors });
-			return;
-		}
+		this.subscriber?.({ type: 'error', errors: this.errors });
 
+		if (target === 'current') return;
 		for (const node of this.nodes.values()) {
 			node.clearErrors('group');
 		}
-
-		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
 	public path(): string {

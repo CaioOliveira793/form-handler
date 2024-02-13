@@ -1,13 +1,17 @@
 # TODO
 
-- finish the error features
 - publish the next version (`v0.2.0`)
+- add vue integration
+- add react integration
 - add a validation debouncer (example)
 - add array helper functions
 
+## Performance
+
+- impl a better error distribution algorithm
+
 ## Features
 
-- [ ] append errors in the field and the child fields
 - [ ] validation debouncer
 - [ ] array node helper functions
   - `swap|swapNode(indexA: number, indexB: number): void`

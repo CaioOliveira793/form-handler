@@ -79,13 +79,21 @@ export interface FieldNode<T, E extends NodeError> {
 	 */
 	getErrors(target?: NodeTarget): Array<E>;
 	/**
-	 * Set the errors of this field.
+	 * Set the errors of the field.
 	 *
 	 * **triggers event**: 'error'
 	 *
 	 * @param errors new errors
 	 */
 	setErrors(errors: Array<E>): void;
+	/**
+	 * Append errors in the field.
+	 *
+	 * **triggers event**: 'error'
+	 *
+	 * @param errors new errors
+	 */
+	appendErrors(errors: Array<E>): void;
 	/**
 	 * Clear all the errors in the node target.
 	 *

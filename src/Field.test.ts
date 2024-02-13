@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { FormApi } from '@/FormApi';
-import { ObjectComposer, ObjectGroupComposer } from '@/GroupComposer';
+import { ObjectComposer, ObjectGroupComposer, ValueOf, objectComposer } from '@/GroupComposer';
 import { Field } from '@/Field';
 import { FieldGroup } from '@/FieldGroup';
 import { NodeEvent } from '@/NodeType';
@@ -536,6 +536,25 @@ describe('Field error manipulation', () => {
 		assert.deepStrictEqual(form.getErrors(), [{ path: '.', message: 'form error' }]);
 		assert.deepStrictEqual(form.isValid(), false);
 	});
+
+	it('append new errors into the field', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+		const nameField = new Field({ parent: form, field: 'name' });
+
+		nameField.appendErrors([{ path: 'name', message: 'error #1' } as TestError]);
+
+		assert.deepStrictEqual(nameField.getErrors(), [{ path: 'name', message: 'error #1' }]);
+
+		nameField.appendErrors([
+			{ path: 'name', message: 'error #2' },
+			{ path: 'invalid path', message: 'error #3' },
+		] as TestError[]);
+
+		assert.deepStrictEqual(nameField.getErrors(), [
+			{ path: 'name', message: 'error #1' },
+			{ path: 'name', message: 'error #2' },
+		]);
+	});
 });
 
 describe('Field value mutation', () => {
@@ -860,6 +879,45 @@ describe('Field event subscription', () => {
 		streetField.notify({ type: 'child-node-updated' });
 
 		assert.deepStrictEqual(history, []);
+	});
+
+	it('publish an error event when appending new errors into the field', () => {
+		const history: Array<NodeEvent<string, TestError>> = [];
+
+		const form = new FormApi<TestData, keyof TestData, ValueOf<TestData>, TestError>({
+			composer: objectComposer<TestData>(),
+		});
+		const nameField = new Field({
+			parent: form as FormApi<TestData, 'name', string, TestError>,
+			field: 'name',
+			subscriber: makeSubscriber(history),
+		});
+
+		nameField.appendErrors([{ path: 'name', message: 'error #1' } as TestError]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'name', message: 'error #1' }] },
+		]);
+	});
+
+	it('publish an error event when appending new errors from the parent field', () => {
+		const history: Array<NodeEvent<string, TestError>> = [];
+
+		const form = new FormApi<TestData, keyof TestData, ValueOf<TestData>, TestError>({
+			composer: objectComposer<TestData>(),
+		});
+		const nameField = new Field({
+			parent: form as FormApi<TestData, 'name', string, TestError>,
+			field: 'name',
+			subscriber: makeSubscriber(history),
+		});
+
+		form.appendErrors([{ path: 'name', message: 'error #1' } as TestError]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'name', message: 'error #1' }] },
+		]);
+		assert.deepStrictEqual(nameField.getErrors(), [{ path: 'name', message: 'error #1' }]);
 	});
 });
 

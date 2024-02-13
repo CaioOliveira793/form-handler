@@ -69,6 +69,15 @@ export class Field<F extends NodeKey, T, P, E extends NodeError> implements Fiel
 		this.subscriber?.({ type: 'error', errors: this.errors });
 	}
 
+	public appendErrors(errors: Array<E>): void {
+		for (const error of errors) {
+			if (error.path === this.path()) {
+				this.errors.push(error);
+			}
+		}
+		this.subscriber?.({ type: 'error', errors: this.errors });
+	}
+
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public clearErrors(_: NodeTarget = 'current'): void {
 		this.errors = [];

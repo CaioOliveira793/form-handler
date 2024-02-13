@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { isDeepStrictEqual } from 'node:util';
 import { FormApi } from '@/FormApi';
-import { ObjectComposer, ObjectGroupComposer, objectComposer } from '@/GroupComposer';
+import { ObjectComposer, ObjectGroupComposer, ValueOf, objectComposer } from '@/GroupComposer';
 import { TestAddress, TestError, TestData, delay, makeSubscriber } from '@/TestUtils';
 import { FieldGroup } from '@/FieldGroup';
 import { Field } from '@/Field';
@@ -783,6 +783,66 @@ describe('FieldGroup error manipulation', () => {
 		assert.deepStrictEqual(stateField.getErrors(), []);
 		assert.deepStrictEqual(streetField.getErrors(), []);
 	});
+
+	it('append new errors into the field group', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+		});
+
+		addressField.appendErrors([{ path: 'address', message: 'error #1' } as TestError]);
+
+		assert.deepStrictEqual(addressField.getErrors(), [{ path: 'address', message: 'error #1' }]);
+
+		addressField.appendErrors([
+			{ path: 'address', message: 'error #2' },
+			{ path: 'invalid path', message: 'error #3' },
+		] as TestError[]);
+
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ path: 'address', message: 'error #1' },
+			{ path: 'address', message: 'error #2' },
+		]);
+	});
+
+	it('append new errors distributing into fields in the group', () => {
+		const form = new FormApi({ composer: objectComposer<TestData>() });
+		const addressField = new FieldGroup({
+			parent: form,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+		});
+		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, field: 'street' });
+
+		addressField.setErrors([{ path: addressField.path(), message: 'address error' } as TestError]);
+		stateField.setErrors([{ path: stateField.path(), message: 'state error' } as TestError]);
+		streetField.setErrors([{ path: streetField.path(), message: 'street error' } as TestError]);
+
+		addressField.appendErrors([
+			{ path: 'address', message: 'error #1' },
+			{ path: 'address.street', message: 'error #2' },
+			{ path: 'address.state', message: 'error #3' },
+			{ path: 'invalid path', message: 'error #4' },
+		] as Array<TestError>);
+
+		assert.deepStrictEqual(addressField.getErrors(), [
+			{ path: 'address', message: 'address error' },
+			{ path: 'address', message: 'error #1' },
+		]);
+
+		assert.deepStrictEqual(streetField.getErrors(), [
+			{ path: 'address.street', message: 'street error' },
+			{ path: 'address.street', message: 'error #2' },
+		]);
+
+		assert.deepStrictEqual(stateField.getErrors(), [
+			{ path: 'address.state', message: 'state error' },
+			{ path: 'address.state', message: 'error #3' },
+		]);
+	});
 });
 
 describe('FieldGroup value mutation', () => {
@@ -1313,5 +1373,53 @@ describe('FieldGroup event subscription', () => {
 			{ type: 'error', errors: [{ path: 'address', message: 'address error' }] },
 			{ type: 'error', errors: [] },
 		]);
+	});
+
+	it('publish an error event when appending errors into the field group', () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestData, keyof TestData, ValueOf<TestData>, TestError>({
+			composer: objectComposer<TestData>(),
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestData, 'address', TestAddress, TestError>,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+
+		addressField.appendErrors([
+			{ path: 'address', message: 'error' },
+			{ path: 'invalid path', message: 'invalid error' },
+			{ path: 'address.state', message: 'state error' },
+		]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address', message: 'error' }] },
+		]);
+		assert.deepStrictEqual(addressField.getErrors('group'), [
+			{ path: 'address', message: 'error' },
+		]);
+	});
+
+	it('publish an error event when appending new errors from the parent field', () => {
+		const history: Array<NodeEvent<TestAddress, TestError>> = [];
+
+		const form = new FormApi<TestData, keyof TestData, ValueOf<TestData>, TestError>({
+			composer: objectComposer<TestData>(),
+		});
+		const addressField = new FieldGroup({
+			parent: form as FormApi<TestData, 'address', TestAddress, TestError>,
+			composer: objectComposer<TestAddress>(),
+			field: 'address',
+			subscriber: makeSubscriber(history),
+		});
+
+		form.appendErrors([{ path: 'address', message: 'error #1' } as TestError]);
+
+		assert.deepStrictEqual(history, [
+			{ type: 'error', errors: [{ path: 'address', message: 'error #1' }] },
+		]);
+		assert.deepStrictEqual(addressField.getErrors(), [{ path: 'address', message: 'error #1' }]);
 	});
 });

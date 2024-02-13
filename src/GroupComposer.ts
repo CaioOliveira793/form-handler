@@ -43,3 +43,5 @@ export const ObjectGroupComposer = Object.freeze({
 export function objectComposer<Obj extends object>(): ObjectComposer<Obj> {
 	return ObjectGroupComposer as unknown as ObjectComposer<Obj>;
 }
+
+export type ValueOf<O extends object> = O[keyof O];
