@@ -289,14 +289,14 @@ describe('FieldGroup state management', () => {
 	});
 
 	it('change parent state after a field value mutation', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
+		const form = new FormApi({ composer: objectComposer<TestData>() });
 		const addressField = new FieldGroup({
 			parent: form,
-			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			composer: objectComposer<TestAddress>(),
 			field: 'address',
 		});
 
-		addressField.setValue('Av. San');
+		addressField.setValue({ street: 'Av. San' } as TestAddress);
 
 		assert.strictEqual(form.isTouched(), false);
 		assert.strictEqual(form.isActive(), false);

@@ -4,7 +4,7 @@ import { FormApi } from '@/FormApi';
 import { ObjectComposer, ObjectGroupComposer, ValueOf, objectComposer } from '@/GroupComposer';
 import { Field } from '@/Field';
 import { FieldGroup } from '@/FieldGroup';
-import { NodeEvent } from '@/NodeType';
+import { NodeError, NodeEvent } from '@/NodeType';
 import { TestData, TestAddress, delay, TestError, makeSubscriber } from '@/TestUtils';
 
 describe('Field state management', () => {
@@ -252,13 +252,23 @@ describe('Field state management', () => {
 	});
 
 	it('change the field state to not dirty when its value is equal to the initial', () => {
-		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
+		const form = new FormApi({ composer: objectComposer<TestData>() });
 		const addressField = new FieldGroup({
 			parent: form,
-			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
+			composer: objectComposer<TestAddress>(),
 			field: 'address',
 		});
-		const field = new Field({ parent: addressField, field: 'street', initial: null });
+		const field = new Field<'street', string | null, TestError>({
+			parent: addressField as FieldGroup<
+				'address',
+				TestAddress,
+				'street',
+				string | null,
+				NodeError
+			>,
+			field: 'street',
+			initial: null,
+		});
 
 		assert.strictEqual(field.isModified(), false);
 		assert.strictEqual(field.isDirty(), false);
