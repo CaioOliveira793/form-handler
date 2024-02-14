@@ -92,7 +92,6 @@ async function validateFn() {
 	return [];
 }
 
-// TODO: add typescript variance anotation.
 export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	implements GroupNode<T, K, V, E>
 {

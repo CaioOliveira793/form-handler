@@ -1,8 +1,9 @@
 {
   "name": "ultimate-form",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.2.0",
+  "description": "Node based form state management",
   "author": "Caio Oliveira <caio.vsoliveira23@gmail.com>",
+  "homepage": "https://github.com/CaioOliveira793/ultimate-form#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/CaioOliveira793/ultimate-form.git"
@@ -15,7 +16,6 @@
     "typescript",
     "frontent"
   ],
-  "homepage": "https://github.com/CaioOliveira793/ultimate-form#readme",
   "license": "MIT",
   "type": "module",
   "source": "src/lib.ts",

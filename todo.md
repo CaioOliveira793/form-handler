@@ -1,10 +1,11 @@
 # TODO
 
-- publish the next version (`v0.2.0`)
 - add vue integration
 - add react integration
 - add a validation debouncer (example)
-- add array helper functions
+- add helper functions
+  - field & form creation
+  - array value manipulation
 
 ## Performance
 
