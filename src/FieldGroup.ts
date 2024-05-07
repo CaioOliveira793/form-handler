@@ -1,100 +1,160 @@
 import {
 	NodeError,
 	NodeKey,
-	FieldNode,
+	Node,
 	GroupComposer,
-	GroupNode,
+	NodeGroup,
 	NodeSubscriber,
 	Option,
-	NodeNotification,
-	NodeTarget,
-} from '@/NodeType';
-import {
-	InternalGroupNode,
+	TargetNode,
 	EqualFn,
-	defaultEqualFn,
-	distributeAppendErrors,
-	distributeReplaceErrors,
-} from '@/Helper';
+	InnerNodeGroup,
+	NodeState,
+	initialNodeState,
+	NodeConsistency,
+	NodeGroupNotification,
+	NodeNotification,
+} from '@/NodeType';
+import { defaultEqualFn, distributeAppendErrors, distributeReplaceErrors } from '@/Helper';
 
-export interface FieldGroupInput<
-	F extends NodeKey,
+export interface FieldGroupInput<in out T, K extends NodeKey, V, E extends NodeError = NodeError> {
+	key: NodeKey;
+	parent: InnerNodeGroup<NodeKey, T, E>;
+	composer: GroupComposer<T, K, V>;
+	state?: NodeState<T, E>;
+	equalFn?: EqualFn<T>;
+	subscriber?: NodeSubscriber<T, E> | null;
+}
+
+export interface FieldGroupInitialInput<
 	in out T,
 	K extends NodeKey,
 	V,
-	E extends NodeError,
+	E extends NodeError = NodeError,
 > {
-	field: F;
-	parent: InternalGroupNode<F, T, E>;
+	key: NodeKey;
+	parent: InnerNodeGroup<NodeKey, T, E>;
 	composer: GroupComposer<T, K, V>;
 	initial?: T;
 	equalFn?: EqualFn<T>;
 	subscriber?: NodeSubscriber<T, E> | null;
 }
 
-export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, E extends NodeError>
-	implements GroupNode<T, K, V, E>
+export class FieldGroup<T, K extends NodeKey, V, E extends NodeError = NodeError>
+	implements NodeGroup<T, K, V, E>
 {
 	public constructor({
-		field,
+		parent,
+		key,
+		composer,
+		state = initialNodeState(composer.default()),
+		equalFn = defaultEqualFn,
+		subscriber = null,
+	}: FieldGroupInput<T, K, V, E>) {
+		this.key = key;
+		this.parent = parent;
+		this.nodes = new Map();
+		this.composer = composer;
+		this.state = state;
+		this.equalFn = equalFn;
+		this.subscriber = subscriber;
+
+		this.nodepath = this.parent.attachNode(this.key, this);
+	}
+
+	public static init<T, K extends NodeKey, V, E extends NodeError = NodeError>({
+		key,
 		parent,
 		composer,
 		initial = composer.default(),
 		equalFn = defaultEqualFn,
 		subscriber = null,
-	}: FieldGroupInput<F, T, K, V, E>) {
-		this.field = field;
-		this.parent = parent;
-		this.nodes = new Map();
-		this.composer = composer;
-		this.initial = initial;
-		this.touched = false;
-		this.active = false;
-		this.modified = false;
-		this.errors = [];
-		this.equalFn = equalFn;
-		this.subscriber = subscriber;
-
-		this.nodepath = this.parent.attachNode(this.field, this);
+	}: FieldGroupInitialInput<T, K, V, E>): FieldGroup<T, K, V, E> {
+		return new FieldGroup({
+			parent,
+			key,
+			composer,
+			state: initialNodeState(initial),
+			equalFn,
+			subscriber,
+		});
 	}
 
-	public attachNode(field: K, node: FieldNode<V, E>): string {
-		this.nodes.set(field, node);
-		const path = this.nodepath + '.' + field;
+	public readonly equalFn: EqualFn<T>;
+	public readonly subscriber: NodeSubscriber<T, E> | null;
+	public readonly composer: GroupComposer<T, K, V>;
 
-		const group = this.parent.extractValue(this.field);
+	public getState(): NodeState<T, E> {
+		return this.state;
+	}
+
+	public replaceState(state: NodeState<T, E>) {
+		this.state = state;
+	}
+
+	public replaceGroup<K extends NodeKey>(
+		group: InnerNodeGroup<K, T, E>,
+		key: K,
+		consistency: NodeConsistency = 'full'
+	) {
+		this.parent.detachNode(this.key, consistency);
+
+		this.parent = group;
+		this.key = key;
+		this.nodepath = this.parent.makeNodepath(key);
+	}
+
+	public attachNode(key: K, node: Node<V, E>, consistency: NodeConsistency = 'full'): string {
+		this.nodes.set(key, node);
+		const path = this.makeNodepath(key);
+
+		if (consistency === 'none') return path;
+
+		const group = this.parent.extractValue(this.key);
 		if (!group) return path;
 
-		const initialGroup = this.composer.extract(group, field);
+		const initialGroup = this.composer.extract(group, key);
 		const initialNode = node.getInitialValue();
 		const initial = initialNode === undefined ? initialGroup : initialNode;
 
-		this.modified = true;
-		this.composer.patch(group, field, initial as V);
+		this.state.modified = true;
+		this.composer.patch(group, key, initial as V);
+
+		if (consistency === 'state') return path;
+
 		this.subscriber?.({ type: 'value', value: group });
-		this.parent.notify({ type: 'child-node-updated' });
+		this.parent.notifyGroup({ type: 'child-node-updated' });
 
 		return path;
 	}
 
-	public detachNode(field: K): boolean {
-		const deleted = this.nodes.delete(field);
+	public detachNode(key: K, consistency: NodeConsistency = 'full'): boolean {
+		const deleted = this.nodes.delete(key);
 
-		const group = this.parent.extractValue(this.field);
+		if (consistency === 'none') return deleted;
+
+		const group = this.parent.extractValue(this.key);
 		if (group) {
-			this.modified = true;
-			this.composer.delete(group, field);
+			this.state.modified = true;
+			this.composer.delete(group, key);
+
+			if (consistency === 'state') return deleted;
+
 			this.subscriber?.({ type: 'value', value: group });
-			this.parent.notify({ type: 'child-node-updated' });
+			this.parent.notifyGroup({ type: 'child-node-updated' });
 		}
 		return deleted;
 	}
 
-	public getNode(field: K): Option<FieldNode<V, E>> {
-		return this.nodes.get(field);
+	public getNode(key: K): Option<Node<V, E>> {
+		return this.nodes.get(key);
 	}
 
-	public iterateNodes(): IterableIterator<FieldNode<V, E>> {
+	public makeNodepath(key: K): string {
+		return this.nodepath + '.' + key;
+	}
+
+	public iterateNodes(): IterableIterator<Node<V, E>> {
 		return this.nodes.values();
 	}
 
@@ -102,95 +162,95 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, E extends No
 		return this.nodes.keys();
 	}
 
-	public iterateEntries(): IterableIterator<[K, FieldNode<V, E>]> {
+	public iterateEntries(): IterableIterator<[K, Node<V, E>]> {
 		return this.nodes.entries();
 	}
 
-	public extractValue(field: K): Option<V> {
-		const group = this.parent.extractValue(this.field);
+	public extractValue(key: K): Option<V> {
+		const group = this.parent.extractValue(this.key);
 		if (!group) return;
-		return this.composer.extract(group, field);
+		return this.composer.extract(group, key);
 	}
 
-	public patchValue(field: K, value: V): Option<T> {
-		const group = this.parent.extractValue(this.field);
+	public patchValue(key: K, value: V): Option<T> {
+		const group = this.parent.extractValue(this.key);
 		if (!group) return undefined;
-		this.modified = true;
-		this.composer.patch(group, field, value);
+		this.state.modified = true;
+		this.composer.patch(group, key, value);
 		return group;
 	}
 
 	public handleFocusWithin(): void {
-		this.touched = true;
+		this.state.touched = true;
 
 		this.parent.handleFocusWithin();
 	}
 
 	public handleBlurWithin(): void {
-		this.touched = true;
+		this.state.touched = true;
 
 		this.parent.handleBlurWithin();
 	}
 
 	public getInitialValue(): Option<T> {
-		return this.initial;
+		return this.state.initial;
 	}
 
 	public getValue(): Option<T> {
-		return this.parent.extractValue(this.field);
+		return this.parent.extractValue(this.key);
 	}
 
 	public setValue(value: T): void {
-		this.modified = true;
-		this.parent.patchValue(this.field, value);
+		this.state.modified = true;
+		this.parent.patchValue(this.key, value);
 
 		this.subscriber?.({ type: 'value', value });
 
-		for (const [field, node] of this.nodes.entries()) {
-			const data = this.composer.extract(value, field);
+		for (const [key, node] of this.nodes.entries()) {
+			const data = this.composer.extract(value, key);
 			node.notify({ type: 'parent-node-updated', value: data });
 		}
 
-		this.parent.notify({ type: 'child-node-updated' });
+		this.parent.notifyGroup({ type: 'child-node-updated' });
 	}
 
-	public reset(): void {
-		this.setValue(structuredClone(this.initial));
+	public resetValue(): void {
+		this.setValue(structuredClone(this.state.initial as T));
 	}
 
-	public getErrors(target: NodeTarget = 'current'): Array<E> {
+	public getErrors(target: TargetNode = 'current'): Array<E> {
 		if (target === 'current') {
-			return this.errors;
+			return this.state.errors;
 		}
 
 		const errors: Array<E> = [];
 		for (const node of this.nodes.values()) {
 			errors.push(...node.getErrors('group'));
 		}
-		errors.push(...this.errors);
+		errors.push(...this.state.errors);
 
 		return errors;
 	}
 
 	public setErrors(errors: Array<E>): void {
-		this.errors = errors.filter(err => err.path === this.path());
-		this.subscriber?.({ type: 'error', errors: this.errors });
+		this.state.errors = errors.filter(err => err.path === this.path());
+		this.subscriber?.({ type: 'error', errors: this.state.errors });
 		distributeReplaceErrors(errors, this.nodes);
 	}
 
-	public appendErrors(errors: E[]): void {
+	public appendErrors(errors: Array<E>): void {
 		for (const error of errors) {
 			if (error.path === this.path()) {
-				this.errors.push(error);
+				this.state.errors.push(error);
 			}
 		}
-		this.subscriber?.({ type: 'error', errors: this.errors });
+		this.subscriber?.({ type: 'error', errors: this.state.errors });
 		distributeAppendErrors(errors, this.nodes);
 	}
 
-	public clearErrors(target: NodeTarget = 'current'): void {
-		this.errors = [];
-		this.subscriber?.({ type: 'error', errors: this.errors });
+	public clearErrors(target: TargetNode = 'current'): void {
+		this.state.errors = [];
+		this.subscriber?.({ type: 'error', errors: this.state.errors });
 
 		if (target === 'current') return;
 		for (const node of this.nodes.values()) {
@@ -203,25 +263,25 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, E extends No
 	}
 
 	public handleFocus(): void {
-		this.active = true;
-		this.touched = true;
+		this.state.active = true;
+		this.state.touched = true;
 
 		this.parent.handleFocusWithin();
 	}
 
 	public handleBlur(): void {
-		this.active = false;
-		this.touched = true;
+		this.state.active = false;
+		this.state.touched = true;
 
 		this.parent.handleBlurWithin();
 	}
 
-	public isValid(target: NodeTarget = 'current'): boolean {
+	public isValid(target: TargetNode = 'current'): boolean {
 		if (target === 'current') {
-			return this.errors.length === 0;
+			return this.state.errors.length === 0;
 		}
 
-		if (this.errors.length !== 0) return false;
+		if (this.state.errors.length !== 0) return false;
 
 		for (const node of this.nodes.values()) {
 			if (!node.isValid('group')) return false;
@@ -231,31 +291,25 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, E extends No
 	}
 
 	public isDirty(): boolean {
-		return !this.equalFn(this.initial, this.parent.extractValue(this.field));
+		return !this.equalFn(this.state.initial, this.parent.extractValue(this.key));
 	}
 
 	public isActive(): boolean {
-		return this.active;
+		return this.state.active;
 	}
 
 	public isModified(): boolean {
-		return this.modified;
+		return this.state.modified;
 	}
 
 	public isTouched(): boolean {
-		return this.touched;
+		return this.state.touched;
 	}
 
 	public notify(notification: NodeNotification<T>): void {
 		switch (notification.type) {
-			case 'child-node-updated':
-				this.modified = true;
-				this.subscriber?.({ type: 'value', value: this.getValue() });
-				this.parent.notify({ type: 'child-node-updated' });
-				break;
-
 			case 'parent-node-updated':
-				this.modified = true;
+				this.state.modified = true;
 				this.subscriber?.({ type: 'value', value: notification.value });
 
 				if (!notification.value) {
@@ -265,32 +319,27 @@ export class FieldGroup<F extends NodeKey, T, K extends NodeKey, V, E extends No
 					break;
 				}
 
-				for (const [field, node] of this.nodes.entries()) {
-					const data = this.composer.extract(notification.value, field);
+				for (const [key, node] of this.nodes.entries()) {
+					const data = this.composer.extract(notification.value, key);
 					node.notify({ type: 'parent-node-updated', value: data });
 				}
 				break;
 		}
 	}
 
-	public dispose(): void {
-		for (const node of this.nodes.values()) {
-			node.dispose();
+	public notifyGroup(notification: NodeGroupNotification): void {
+		switch (notification.type) {
+			case 'child-node-updated':
+				this.state.modified = true;
+				this.subscriber?.({ type: 'value', value: this.getValue() });
+				this.parent.notifyGroup({ type: 'child-node-updated' });
+				break;
 		}
-		this.parent.detachNode(this.field);
 	}
 
-	private readonly nodepath: string;
-	private readonly field: F;
-	private readonly parent: InternalGroupNode<F, T, E>;
-	private readonly nodes: Map<K, FieldNode<V, E>>;
-	private readonly composer: GroupComposer<T, K, V>;
-	private readonly initial: T;
-	private touched: boolean;
-	private active: boolean;
-	private modified: boolean;
-	private errors: Array<E>;
-
-	private readonly equalFn: EqualFn<T>;
-	private readonly subscriber: NodeSubscriber<T, E> | null;
+	private nodepath: string;
+	private key: NodeKey;
+	private parent: InnerNodeGroup<NodeKey, T, E>;
+	private readonly nodes: Map<K, Node<V, E>>;
+	private state: NodeState<T, E>;
 }

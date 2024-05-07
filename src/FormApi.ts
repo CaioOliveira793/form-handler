@@ -3,18 +3,23 @@ import {
 	NodeKey,
 	GroupComposer,
 	NodeSubscriber,
-	FieldNode,
-	GroupNode,
+	Node,
+	NodeGroup,
 	Option,
+	TargetNode,
+	EqualFn,
+	NodeState,
+	initialNodeState,
+	NodeConsistency,
+	NodeGroupNotification,
 	NodeNotification,
-	NodeTarget,
 } from '@/NodeType';
-import { EqualFn, defaultEqualFn, distributeAppendErrors, distributeReplaceErrors } from '@/Helper';
+import { defaultEqualFn, distributeAppendErrors, distributeReplaceErrors } from '@/Helper';
 
 /**
  * Form validation function
  */
-export type ValidateFn<T, E extends NodeError> = (data: T) => Promise<Array<E>>;
+export type ValidateFn<T, E extends NodeError = NodeError> = (data: T) => Promise<Array<E>>;
 
 /**
  * Form validation rejection handler
@@ -32,7 +37,7 @@ export type SubmitRejectionHandler = (error: unknown) => void;
  * @param data form data
  * @param formApi reference to a formApi instance
  */
-export type SubmitFn<T, K extends NodeKey, V, E extends NodeError> = (
+export type SubmitFn<T, K extends NodeKey, V, E extends NodeError = NodeError> = (
 	data: T,
 	formApi: FormApi<T, K, V, E>
 ) => Promise<Array<E>> | Promise<void> | Array<E> | void;
@@ -59,7 +64,7 @@ export type ValidationTrigger = 'focus' | 'blur' | 'value';
  */
 export type SubmissionState = 'validation_error' | 'submit_error' | 'success';
 
-export interface FormApiInput<T, K extends NodeKey, V, E extends NodeError> {
+export interface FormApiInput<T, K extends NodeKey, V, E extends NodeError = NodeError> {
 	composer: GroupComposer<T, K, V>;
 	initial?: T;
 	/**
@@ -92,8 +97,8 @@ async function validateFn() {
 	return [];
 }
 
-export class FormApi<T, K extends NodeKey, V, E extends NodeError>
-	implements GroupNode<T, K, V, E>
+export class FormApi<T, K extends NodeKey, V, E extends NodeError = NodeError>
+	implements NodeGroup<T, K, V, E>
 {
 	public constructor({
 		composer,
@@ -107,13 +112,9 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		subscriber = null,
 	}: FormApiInput<T, K, V, E>) {
 		this.value = structuredClone(initial);
-		this.errors = [];
 		this.nodes = new Map();
 		this.composer = composer;
-		this.initial = initial;
-		this.touched = false;
-		this.active = false;
-		this.modified = false;
+		this.state = initialNodeState(initial);
 		this.validationTrigger = validationTrigger;
 		this.submitFn = submit;
 		this.validateFn = validate;
@@ -122,6 +123,10 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.equalFn = equalFn;
 		this.subscriber = subscriber;
 	}
+
+	public readonly equalFn: EqualFn<T>;
+	public readonly subscriber: NodeSubscriber<T, E> | null;
+	public readonly composer: GroupComposer<T, K, V>;
 
 	public async submitAsync(): Promise<SubmissionState> {
 		try {
@@ -153,18 +158,31 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		this.submitAsync();
 	}
 
-	public attachNode(field: K, node: FieldNode<V, E>): string {
-		this.nodes.set(field, node);
-		const path = field.toString();
+	public getState(): NodeState<T, E> {
+		return this.state;
+	}
 
-		if (!this.value) return path;
+	public replaceState(state: NodeState<T, E>): void {
+		this.state = state;
+	}
 
-		const initialForm = this.composer.extract(this.value, field);
+	public replaceGroup() {}
+
+	public attachNode(key: K, node: Node<V, E>, consistency: NodeConsistency = 'full'): string {
+		this.nodes.set(key, node);
+		const path = this.makeNodepath(key);
+
+		if (consistency === 'none' || !this.value) return path;
+
+		const initialForm = this.composer.extract(this.value, key);
 		const initialNode = node.getInitialValue();
 		const initial = initialNode === undefined ? initialForm : initialNode;
 
-		this.modified = true;
-		this.composer.patch(this.value, field, initial as V);
+		this.state.modified = true;
+		this.composer.patch(this.value, key, initial as V);
+
+		if (consistency === 'state') return path;
+
 		this.subscriber?.({ type: 'value', value: this.value });
 
 		if (this.validationTrigger === 'value') {
@@ -174,12 +192,17 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		return path;
 	}
 
-	public detachNode(field: K): boolean {
-		const deleted = this.nodes.delete(field);
+	public detachNode(key: K, consistency: NodeConsistency = 'full'): boolean {
+		const deleted = this.nodes.delete(key);
+
+		if (consistency === 'none') return deleted;
 
 		if (this.value) {
-			this.modified = true;
-			this.composer.delete(this.value, field);
+			this.state.modified = true;
+			this.composer.delete(this.value, key);
+
+			if (consistency === 'state') return deleted;
+
 			this.subscriber?.({ type: 'value', value: this.value });
 
 			if (this.validationTrigger === 'value') {
@@ -190,11 +213,15 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		return deleted;
 	}
 
-	public getNode(field: K): Option<FieldNode<V, E>> {
-		return this.nodes.get(field);
+	public getNode(key: K): Option<Node<V, E>> {
+		return this.nodes.get(key);
 	}
 
-	public iterateNodes(): IterableIterator<FieldNode<V, E>> {
+	public makeNodepath(key: K): string {
+		return key.toString();
+	}
+
+	public iterateNodes(): IterableIterator<Node<V, E>> {
 		return this.nodes.values();
 	}
 
@@ -202,22 +229,22 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		return this.nodes.keys();
 	}
 
-	public iterateEntries(): IterableIterator<[K, FieldNode<V, E>]> {
+	public iterateEntries(): IterableIterator<[K, Node<V, E>]> {
 		return this.nodes.entries();
 	}
 
-	public extractValue(field: K): Option<V> {
-		return this.composer.extract(this.value, field);
+	public extractValue(key: K): Option<V> {
+		return this.composer.extract(this.value, key);
 	}
 
-	public patchValue(field: K, value: V): Option<T> {
-		this.modified = true;
-		this.composer.patch(this.value, field, value);
+	public patchValue(key: K, value: V): Option<T> {
+		this.state.modified = true;
+		this.composer.patch(this.value, key, value);
 		return this.value;
 	}
 
 	public handleFocusWithin(): void {
-		this.touched = true;
+		this.state.touched = true;
 
 		if (this.validationTrigger === 'focus') {
 			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
@@ -225,7 +252,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	}
 
 	public handleBlurWithin(): void {
-		this.touched = true;
+		this.state.touched = true;
 
 		if (this.validationTrigger === 'blur') {
 			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
@@ -233,7 +260,7 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	}
 
 	public getInitialValue(): Option<T> {
-		return this.initial;
+		return this.state.initial;
 	}
 
 	public getValue(): Option<T> {
@@ -241,13 +268,13 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	}
 
 	public setValue(value: T): void {
-		this.modified = true;
+		this.state.modified = true;
 		this.value = value;
 
 		this.subscriber?.({ type: 'value', value: this.value });
 
-		for (const [field, node] of this.nodes.entries()) {
-			const data = this.composer.extract(this.value, field);
+		for (const [key, node] of this.nodes.entries()) {
+			const data = this.composer.extract(this.value, key);
 			node.notify({ type: 'parent-node-updated', value: data });
 		}
 
@@ -256,43 +283,43 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 		}
 	}
 
-	public reset(): void {
-		this.setValue(structuredClone(this.initial));
+	public resetValue(): void {
+		this.setValue(structuredClone(this.state.initial as T));
 	}
 
-	public getErrors(target: NodeTarget = 'current'): Array<E> {
+	public getErrors(target: TargetNode = 'current'): Array<E> {
 		if (target === 'current') {
-			return this.errors;
+			return this.state.errors;
 		}
 
 		const errors: Array<E> = [];
 		for (const node of this.nodes.values()) {
 			errors.push(...node.getErrors('group'));
 		}
-		errors.push(...this.errors);
+		errors.push(...this.state.errors);
 
 		return errors;
 	}
 
 	public setErrors(errors: Array<E>): void {
-		this.errors = errors.filter(err => err.path === '.');
-		this.subscriber?.({ type: 'error', errors: this.errors });
+		this.state.errors = errors.filter(err => err.path === '.');
+		this.subscriber?.({ type: 'error', errors: this.state.errors });
 		distributeReplaceErrors(errors, this.nodes);
 	}
 
 	public appendErrors(errors: Array<E>): void {
 		for (const error of errors) {
 			if (error.path === this.path()) {
-				this.errors.push(error);
+				this.state.errors.push(error);
 			}
 		}
-		this.subscriber?.({ type: 'error', errors: this.errors });
+		this.subscriber?.({ type: 'error', errors: this.state.errors });
 		distributeAppendErrors(errors, this.nodes);
 	}
 
-	public clearErrors(target: NodeTarget = 'current'): void {
-		this.errors = [];
-		this.subscriber?.({ type: 'error', errors: this.errors });
+	public clearErrors(target: TargetNode = 'current'): void {
+		this.state.errors = [];
+		this.subscriber?.({ type: 'error', errors: this.state.errors });
 
 		if (target === 'current') return;
 		for (const node of this.nodes.values()) {
@@ -305,8 +332,8 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	}
 
 	public handleFocus(): void {
-		this.active = true;
-		this.touched = true;
+		this.state.active = true;
+		this.state.touched = true;
 
 		if (this.validationTrigger === 'focus') {
 			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
@@ -314,20 +341,20 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	}
 
 	public handleBlur(): void {
-		this.active = false;
-		this.touched = true;
+		this.state.active = false;
+		this.state.touched = true;
 
 		if (this.validationTrigger === 'blur') {
 			this.validateFn(this.value).then(this.handleValidateFn).catch(this.validateRejection);
 		}
 	}
 
-	public isValid(target: NodeTarget = 'current'): boolean {
+	public isValid(target: TargetNode = 'current'): boolean {
 		if (target === 'current') {
-			return this.errors.length === 0;
+			return this.state.errors.length === 0;
 		}
 
-		if (this.errors.length !== 0) return false;
+		if (this.state.errors.length !== 0) return false;
 
 		for (const node of this.nodes.values()) {
 			if (!node.isValid('group')) return false;
@@ -337,25 +364,28 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	}
 
 	public isDirty(): boolean {
-		return !this.equalFn(this.initial, this.value);
+		return !this.equalFn(this.state.initial, this.value);
 	}
 
 	public isActive(): boolean {
-		return this.active;
+		return this.state.active;
 	}
 
 	public isModified(): boolean {
-		return this.modified;
+		return this.state.modified;
 	}
 
 	public isTouched(): boolean {
-		return this.touched;
+		return this.state.touched;
 	}
 
-	public notify(notification: NodeNotification<T>): void {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public notify(_: NodeNotification<T>): void {}
+
+	public notifyGroup(notification: NodeGroupNotification): void {
 		switch (notification.type) {
 			case 'child-node-updated': {
-				this.modified = true;
+				this.state.modified = true;
 				this.subscriber?.({ type: 'value', value: this.value });
 
 				if (this.validationTrigger === 'value') {
@@ -363,34 +393,20 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 				}
 				break;
 			}
-
-			case 'parent-node-updated':
-				break;
-		}
-	}
-
-	public dispose(): void {
-		for (const node of this.nodes.values()) {
-			node.dispose();
 		}
 	}
 
 	private handleValidateFn = (errors: Array<E>): void => {
 		// no errors returned and no errors present (nothing changed)
-		if (errors.length === 0 && this.errors.length === 0) {
+		if (errors.length === 0 && this.state.errors.length === 0) {
 			return;
 		}
 		this.setErrors(errors);
 	};
 
 	private value: T;
-	private readonly nodes: Map<K, FieldNode<V, E>>;
-	private readonly composer: GroupComposer<T, K, V>;
-	private readonly initial: T;
-	private touched: boolean;
-	private active: boolean;
-	private modified: boolean;
-	private errors: Array<E>;
+	private readonly nodes: Map<K, Node<V, E>>;
+	private state: NodeState<T, E>;
 	// private formErrors: Array<E>;
 	private readonly validationTrigger: ValidationTrigger;
 
@@ -398,6 +414,4 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError>
 	private readonly validateFn: ValidateFn<T, E>;
 	private readonly validateRejection: ValidateRejectionHandler;
 	private readonly submitRejection: SubmitRejectionHandler;
-	private readonly equalFn: EqualFn<T>;
-	private readonly subscriber: NodeSubscriber<T, E> | null;
 }

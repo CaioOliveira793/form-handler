@@ -10,7 +10,7 @@ import { TestData, TestAddress, delay, TestError, makeSubscriber } from '@/TestU
 describe('Field state management', () => {
 	it('change state on focus event', () => {
 		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
-		const field = new Field({ parent: form, field: 'name' });
+		const field = new Field({ parent: form, key: 'name' });
 
 		assert.strictEqual(field.isTouched(), false);
 		assert.strictEqual(field.isActive(), false);
@@ -23,7 +23,7 @@ describe('Field state management', () => {
 
 	it('change state on focus and blur event', () => {
 		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
-		const field = new Field({ parent: form, field: 'name' });
+		const field = new Field({ parent: form, key: 'name' });
 
 		field.handleFocus();
 
@@ -41,9 +41,9 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const field = new Field({ parent: addressField, field: 'street' });
+		const field = new Field({ parent: addressField, key: 'street' });
 
 		field.handleFocus();
 
@@ -59,9 +59,9 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const field = new Field({ parent: addressField, field: 'street' });
+		const field = new Field({ parent: addressField, key: 'street' });
 
 		field.handleFocus();
 
@@ -93,10 +93,10 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({ parent: addressField, field: 'street' });
-		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, key: 'street' });
+		const stateField = new Field({ parent: addressField, key: 'state' });
 
 		streetField.setValue('Carlos Gomes');
 		streetField.handleFocus();
@@ -114,7 +114,7 @@ describe('Field state management', () => {
 
 	it('change state on blur event', () => {
 		const form = new FormApi({ composer: ObjectGroupComposer as ObjectComposer<TestData> });
-		const field = new Field({ parent: form, field: 'name' });
+		const field = new Field({ parent: form, key: 'name' });
 
 		assert.strictEqual(field.isTouched(), false);
 		assert.strictEqual(field.isActive(), false);
@@ -130,9 +130,9 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const field = new Field({ parent: addressField, field: 'street' });
+		const field = new Field({ parent: addressField, key: 'street' });
 
 		field.handleBlur();
 
@@ -156,10 +156,10 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({ parent: addressField, field: 'street' });
-		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, key: 'street' });
+		const stateField = new Field({ parent: addressField, key: 'state' });
 
 		streetField.setValue('Carlos Gomes');
 		streetField.handleBlur();
@@ -180,9 +180,9 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const field = new Field({ parent: addressField, field: 'street' });
+		const field = new Field({ parent: addressField, key: 'street' });
 
 		field.setValue('Av. San');
 
@@ -196,9 +196,9 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const field = new Field({ parent: addressField, field: 'street' });
+		const field = new Field({ parent: addressField, key: 'street' });
 
 		field.setValue('Av. San');
 
@@ -206,7 +206,7 @@ describe('Field state management', () => {
 		assert.strictEqual(field.isActive(), false);
 		assert.strictEqual(field.isModified(), true);
 
-		field.reset();
+		field.resetValue();
 
 		assert.strictEqual(field.isTouched(), false);
 		assert.strictEqual(field.isActive(), false);
@@ -218,9 +218,9 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const field = new Field({ parent: addressField, field: 'street' });
+		const field = new Field({ parent: addressField, key: 'street' });
 
 		field.setValue('Av. San');
 
@@ -238,9 +238,9 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const field = new Field({ parent: addressField, field: 'street' });
+		const field = new Field({ parent: addressField, key: 'street' });
 
 		assert.strictEqual(field.isModified(), false);
 		assert.strictEqual(field.isDirty(), false);
@@ -253,20 +253,14 @@ describe('Field state management', () => {
 
 	it('change the field state to not dirty when its value is equal to the initial', () => {
 		const form = new FormApi({ composer: objectComposer<TestData>() });
-		const addressField = new FieldGroup({
+		const addressField = FieldGroup.init({
 			parent: form,
 			composer: objectComposer<TestAddress>(),
-			field: 'address',
+			key: 'address',
 		});
-		const field = new Field<'street', string | null, TestError>({
-			parent: addressField as FieldGroup<
-				'address',
-				TestAddress,
-				'street',
-				string | null,
-				NodeError
-			>,
-			field: 'street',
+		const field = Field.init({
+			parent: addressField as FieldGroup<TestAddress, 'street', string | null, NodeError>,
+			key: 'street',
 			initial: null,
 		});
 
@@ -291,9 +285,9 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const field = new Field({ parent: addressField, field: 'street' });
+		const field = new Field({ parent: addressField, key: 'street' });
 
 		assert.strictEqual(field.isModified(), false);
 		assert.strictEqual(field.isDirty(), false);
@@ -320,10 +314,10 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({ parent: addressField, field: 'street' });
-		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, key: 'street' });
+		const stateField = new Field({ parent: addressField, key: 'state' });
 
 		streetField.setValue('L');
 
@@ -360,10 +354,10 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({ parent: addressField, field: 'street' });
-		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, key: 'street' });
+		const stateField = new Field({ parent: addressField, key: 'state' });
 
 		streetField.setValue('invalid');
 
@@ -387,9 +381,9 @@ describe('Field state management', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({ parent: addressField, field: 'street' });
+		const streetField = new Field({ parent: addressField, key: 'street' });
 
 		streetField.setErrors([
 			{ path: 'address.street', message: 'address street message' } as TestError,
@@ -417,10 +411,10 @@ describe('Field error manipulation', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({ parent: addressField, field: 'street' });
-		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, key: 'street' });
+		const stateField = new Field({ parent: addressField, key: 'state' });
 
 		streetField.setErrors([
 			{ message: 'Test error', path: 'address.street' },
@@ -444,10 +438,10 @@ describe('Field error manipulation', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({ parent: addressField, field: 'street' });
-		const stateField = new Field({ parent: addressField, field: 'state' });
+		const streetField = new Field({ parent: addressField, key: 'street' });
+		const stateField = new Field({ parent: addressField, key: 'state' });
 
 		streetField.setErrors([
 			{ message: 'error#1', path: 'address.street' },
@@ -484,7 +478,7 @@ describe('Field error manipulation', () => {
 			validate: validationFn,
 			validationTrigger: 'value',
 		});
-		const nameField = new Field({ parent: form, field: 'name' });
+		const nameField = new Field({ parent: form, key: 'name' });
 
 		nameField.setValue('none');
 
@@ -497,7 +491,7 @@ describe('Field error manipulation', () => {
 		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
-		const nameField = new Field({ parent: form, field: 'name' });
+		const nameField = new Field({ parent: form, key: 'name' });
 
 		form.setErrors([{ path: '.', message: 'form error' }]);
 		nameField.setErrors([{ path: 'name', message: 'name error' }]);
@@ -510,7 +504,7 @@ describe('Field error manipulation', () => {
 		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
-		const nameField = new Field({ parent: form, field: 'name' });
+		const nameField = new Field({ parent: form, key: 'name' });
 
 		form.setErrors([
 			{ path: '.', message: 'form error' },
@@ -529,7 +523,7 @@ describe('Field error manipulation', () => {
 		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
-		const nameField = new Field({ parent: form, field: 'name' });
+		const nameField = new Field({ parent: form, key: 'name' });
 
 		form.setErrors([
 			{ path: '.', message: 'form error' },
@@ -549,7 +543,7 @@ describe('Field error manipulation', () => {
 
 	it('append new errors into the field', () => {
 		const form = new FormApi({ composer: objectComposer<TestData>() });
-		const nameField = new Field({ parent: form, field: 'name' });
+		const nameField = new Field({ parent: form, key: 'name' });
 
 		nameField.appendErrors([{ path: 'name', message: 'error #1' } as TestError]);
 
@@ -572,14 +566,14 @@ describe('Field value mutation', () => {
 		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
-		const addressField = new FieldGroup({
+		const addressField = FieldGroup.init({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({
+		const streetField = Field.init({
 			parent: addressField,
-			field: 'street',
+			key: 'street',
 			initial: 'test',
 		});
 
@@ -590,17 +584,17 @@ describe('Field value mutation', () => {
 	});
 
 	it('set the field value mutating the parent node', () => {
-		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+		const form = new FormApi({
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
-		const addressField = new FieldGroup({
+		const addressField = FieldGroup.init({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({
-			parent: addressField,
-			field: 'street',
+		const streetField = Field.init({
+			parent: addressField as FieldGroup<TestAddress, 'street', string | null, NodeError>,
+			key: 'street',
 			initial: null,
 		});
 
@@ -616,17 +610,17 @@ describe('Field value mutation', () => {
 	});
 
 	it('reset the field value to initial', () => {
-		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+		const form = new FormApi({
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
-		const addressField = new FieldGroup({
+		const addressField = FieldGroup.init({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({
-			parent: addressField,
-			field: 'street',
+		const streetField = Field.init({
+			parent: addressField as FieldGroup<TestAddress, keyof TestAddress, string | null, NodeError>,
+			key: 'street',
 			initial: null,
 		});
 
@@ -635,7 +629,7 @@ describe('Field value mutation', () => {
 		assert.deepStrictEqual(streetField.getInitialValue(), null);
 		assert.deepStrictEqual(streetField.getValue(), 'another test');
 
-		streetField.reset();
+		streetField.resetValue();
 
 		assert.deepStrictEqual(streetField.getValue(), null);
 		assert.deepStrictEqual(addressField.getValue(), { street: null });
@@ -643,40 +637,18 @@ describe('Field value mutation', () => {
 });
 
 describe('Field node composition', () => {
-	it('dispose a field detaching itself from the form', () => {
-		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestData>,
-		});
-		const addressField = new FieldGroup({
-			parent: form,
-			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
-		});
-		const streetField = new Field({
-			parent: addressField,
-			field: 'street',
-			initial: null,
-		});
-
-		assert.equal(addressField.getNode('street'), streetField);
-
-		streetField.dispose();
-
-		assert.equal(addressField.getNode('street'), null);
-	});
-
 	it('have a path of fields form the root node', () => {
-		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
+		const form = new FormApi({
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
-		const addressField = new FieldGroup({
+		const addressField = FieldGroup.init({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({
-			parent: addressField,
-			field: 'street',
+		const streetField = Field.init({
+			parent: addressField as FieldGroup<TestAddress, keyof TestAddress, string | null, NodeError>,
+			key: 'street',
 			initial: null,
 		});
 
@@ -694,12 +666,12 @@ describe('Field event subscription', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({
+		const streetField = Field.init({
 			subscriber: makeSubscriber(history),
-			parent: addressField,
-			field: 'street',
+			parent: addressField as FieldGroup<TestAddress, keyof TestAddress, string | null, TestError>,
+			key: 'street',
 			initial: null,
 		});
 
@@ -736,15 +708,15 @@ describe('Field event subscription', () => {
 		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
 			composer: ObjectGroupComposer as ObjectComposer<TestData>,
 		});
-		const addressField = new FieldGroup({
+		const addressField = FieldGroup.init({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({
+		const streetField = Field.init({
 			subscriber: makeSubscriber(history),
-			parent: addressField,
-			field: 'street',
+			parent: addressField as FieldGroup<TestAddress, keyof TestAddress, string | null, TestError>,
+			key: 'street',
 			initial: null,
 		});
 
@@ -753,13 +725,13 @@ describe('Field event subscription', () => {
 		streetField.setValue('else');
 		assert.deepStrictEqual(history, [{ type: 'value', value: 'else' }]);
 
-		streetField.reset();
+		streetField.resetValue();
 		assert.deepStrictEqual(history, [
 			{ type: 'value', value: 'else' },
 			{ type: 'value', value: null },
 		]);
 
-		streetField.reset();
+		streetField.resetValue();
 		assert.deepStrictEqual(history, [
 			{ type: 'value', value: 'else' },
 			{ type: 'value', value: null },
@@ -776,12 +748,12 @@ describe('Field event subscription', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
-		const streetField = new Field({
+		const streetField = Field.init({
 			subscriber: makeSubscriber(history),
-			parent: addressField,
-			field: 'street',
+			parent: addressField as FieldGroup<TestAddress, keyof TestAddress, string | null, TestError>,
+			key: 'street',
 			initial: null,
 		});
 
@@ -817,12 +789,12 @@ describe('Field event subscription', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
 		const streetField = new Field({
 			subscriber: makeSubscriber(history),
 			parent: addressField,
-			field: 'street',
+			key: 'street',
 		});
 
 		assert.deepStrictEqual(history, []);
@@ -845,12 +817,12 @@ describe('Field event subscription', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
 		const streetField = new Field({
 			subscriber: makeSubscriber(history),
 			parent: addressField,
-			field: 'street',
+			key: 'street',
 		});
 
 		assert.deepStrictEqual(history, []);
@@ -867,30 +839,6 @@ describe('Field event subscription', () => {
 		]);
 	});
 
-	it('not publish a value event after a child node updated notification', () => {
-		const history: Array<NodeEvent<string | null, TestError>> = [];
-
-		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestData>,
-		});
-		const addressField = new FieldGroup({
-			parent: form,
-			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
-		});
-		const streetField = new Field({
-			subscriber: makeSubscriber(history),
-			parent: addressField,
-			field: 'street',
-		});
-
-		assert.deepStrictEqual(history, []);
-
-		streetField.notify({ type: 'child-node-updated' });
-
-		assert.deepStrictEqual(history, []);
-	});
-
 	it('publish an error event when appending new errors into the field', () => {
 		const history: Array<NodeEvent<string, TestError>> = [];
 
@@ -899,7 +847,7 @@ describe('Field event subscription', () => {
 		});
 		const nameField = new Field({
 			parent: form as FormApi<TestData, 'name', string, TestError>,
-			field: 'name',
+			key: 'name',
 			subscriber: makeSubscriber(history),
 		});
 
@@ -918,7 +866,7 @@ describe('Field event subscription', () => {
 		});
 		const nameField = new Field({
 			parent: form as FormApi<TestData, 'name', string, TestError>,
-			field: 'name',
+			key: 'name',
 			subscriber: makeSubscriber(history),
 		});
 
@@ -939,11 +887,11 @@ describe('Field update notification', () => {
 		const addressField = new FieldGroup({
 			parent: form,
 			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
+			key: 'address',
 		});
 		const streetField = new Field({
 			parent: addressField,
-			field: 'street',
+			key: 'street',
 		});
 
 		assert.strictEqual(streetField.isModified(), false);
@@ -951,35 +899,5 @@ describe('Field update notification', () => {
 		streetField.notify({ type: 'parent-node-updated', value: 'fake' });
 
 		assert.strictEqual(streetField.isModified(), true);
-	});
-
-	it('ignore any notification from a child node', () => {
-		const form = new FormApi<TestData, keyof TestData, string | TestAddress, TestError>({
-			composer: ObjectGroupComposer as ObjectComposer<TestData>,
-		});
-		const addressField = new FieldGroup({
-			parent: form,
-			composer: ObjectGroupComposer as ObjectComposer<TestAddress>,
-			field: 'address',
-		});
-		const streetField = new Field({
-			parent: addressField,
-			field: 'street',
-		});
-
-		// State assertion
-		assert.deepStrictEqual(streetField.isTouched(), false);
-		assert.deepStrictEqual(streetField.isActive(), false);
-		assert.deepStrictEqual(streetField.isModified(), false);
-		assert.deepStrictEqual(streetField.isValid(), true);
-		assert.deepStrictEqual(streetField.getErrors(), []);
-
-		streetField.notify({ type: 'child-node-updated' });
-
-		assert.deepStrictEqual(streetField.isTouched(), false);
-		assert.deepStrictEqual(streetField.isActive(), false);
-		assert.deepStrictEqual(streetField.isModified(), false);
-		assert.deepStrictEqual(streetField.isValid(), true);
-		assert.deepStrictEqual(streetField.getErrors(), []);
 	});
 });

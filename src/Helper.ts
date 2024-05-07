@@ -1,22 +1,4 @@
-import { NodeError, NodeKey, FieldNode, NodeNotification, Option } from '@/NodeType';
-
-/**
- * Group node used internally by the field node.
- */
-export interface InternalGroupNode<K extends NodeKey, in out V, E extends NodeError> {
-	attachNode(field: K, node: FieldNode<V, E>): string;
-	detachNode(field: K): boolean;
-	extractValue(field: K): Option<V>;
-	patchValue(field: K, value: V): Option<unknown>;
-	handleFocusWithin(): void;
-	handleBlurWithin(): void;
-	notify(notification: NodeNotification<unknown>): void;
-}
-
-/**
- * Equality comparison function.
- */
-export type EqualFn<in T = unknown> = (a: T | undefined, b: T | undefined) => boolean;
+import { NodeError, NodeKey, Node } from '@/NodeType';
 
 /**
  * Default equality comparison.
@@ -29,38 +11,40 @@ export function defaultEqualFn<T = unknown>(a: T | undefined, b: T | undefined):
 	return a === b;
 }
 
+// TODO: merge "distributeReplaceErrors" and "distributeAppendErrors"
+
 export function distributeReplaceErrors<E extends NodeError, K extends NodeKey, T>(
 	errors: Array<E>,
-	nodes: Map<K, FieldNode<T, E>>
+	nodes: Map<K, Node<T, E>>
 ) {
 	for (const node of nodes.values()) {
-		const field = node.path();
-		const fieldErrors = [];
+		const key = node.path();
+		const nodeErrors = [];
 
 		for (const error of errors) {
-			if (error.path.startsWith(field)) {
-				fieldErrors.push(error);
+			if (error.path.startsWith(key)) {
+				nodeErrors.push(error);
 			}
 		}
 
-		node.setErrors(fieldErrors);
+		node.setErrors(nodeErrors);
 	}
 }
 
 export function distributeAppendErrors<E extends NodeError, K extends NodeKey, T>(
 	errors: Array<E>,
-	nodes: Map<K, FieldNode<T, E>>
+	nodes: Map<K, Node<T, E>>
 ) {
 	for (const node of nodes.values()) {
-		const field = node.path();
-		const fieldErrors = [];
+		const key = node.path();
+		const nodeErrors = [];
 
 		for (const error of errors) {
-			if (error.path.startsWith(field)) {
-				fieldErrors.push(error);
+			if (error.path.startsWith(key)) {
+				nodeErrors.push(error);
 			}
 		}
 
-		node.appendErrors(fieldErrors);
+		node.appendErrors(nodeErrors);
 	}
 }
