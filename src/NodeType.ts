@@ -73,6 +73,7 @@ export interface NodeState<T, E> {
 	touched: boolean;
 	active: boolean;
 	modified: boolean;
+	// TODO: remove errors from the state
 	errors: Array<E>;
 }
 

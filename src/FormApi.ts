@@ -302,8 +302,10 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError = NodeError>
 	}
 
 	public setErrors(errors: Array<E>): void {
-		this.state.errors = errors.filter(err => err.path === '.');
-		this.subscriber?.({ type: 'error', errors: this.state.errors });
+		this.errors = errors;
+		const ownErrors = errors.filter(err => err.path === '.');
+		this.state.errors = ownErrors;
+		this.subscriber?.({ type: 'error', errors: ownErrors });
 		distributeReplaceErrors(errors, this.nodes);
 	}
 
@@ -405,9 +407,9 @@ export class FormApi<T, K extends NodeKey, V, E extends NodeError = NodeError>
 	};
 
 	private value: T;
+	private errors: Array<E>;
 	private readonly nodes: Map<K, Node<V, E>>;
 	private state: NodeState<T, E>;
-	// private formErrors: Array<E>;
 	private readonly validationTrigger: ValidationTrigger;
 
 	private readonly submitFn: SubmitFn<T, K, V, E>;

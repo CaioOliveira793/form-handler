@@ -233,6 +233,7 @@ export class FieldGroup<T, K extends NodeKey, V, E extends NodeError = NodeError
 	}
 
 	public setErrors(errors: Array<E>): void {
+		this.parent.appendErrors();
 		this.state.errors = errors.filter(err => err.path === this.path());
 		this.subscriber?.({ type: 'error', errors: this.state.errors });
 		distributeReplaceErrors(errors, this.nodes);
